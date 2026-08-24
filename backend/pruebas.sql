@@ -45,6 +45,11 @@ create table if not exists storage.buckets (
 
 insert into public.moderadores (correo, nombre) values ('mod@ejemplo.org','Moderadora');
 
+-- Las pruebas T1 a T17 comprueban el filtro de moderación, así que se
+-- ejecutan con la publicación automática apagada. El interruptor tiene su
+-- propio bloque al final (T18 en adelante).
+update public.ajustes set valor = false where clave = 'autopublicar';
+
 -- =========== 1 · anon puede insertar por la función ===========
 set role anon;
 set request.headers = '{"x-forwarded-for":"200.1.1.9, 10.0.0.1"}';
@@ -134,3 +139,92 @@ select public.registrar_envio();
 select 'T17 anon llama a ip_cliente (debe fallar)' as prueba;
 select public.ip_cliente();
 reset role;
+
+-- =====================================================================
+-- PUBLICACIÓN AUTOMÁTICA, LOS CUATRO ESTADOS, CORREGIR Y BORRAR
+-- =====================================================================
+reset role;
+reset request.jwt.claims;
+set request.headers = '{"x-forwarded-for":"201.4.4.4"}';
+update public.ajustes set valor = true where clave = 'autopublicar';
+
+set role anon;
+select public.crear_reporte('{"departamento":"Chocó","municipio":"Quibdó","tipo_residuo":"Icopor","riesgo_sanitario":"No","notas":"[T18] autopublicado","quien_reporta":"Ana","whatsapp":"3001112233"}'::jsonb) as _ \gset
+reset role;
+select 'T18 encendido: entra ya publicado, sin moderar' as prueba, publicado, moderado, eliminado
+  from public.reportes where notas = '[T18] autopublicado';
+
+set role anon;
+select 'T19 y el público lo ve al momento' as prueba, count(*) as filas
+  from public.v_reportes_publicos where notas = '[T18] autopublicado';
+select 'T20 anon no lee la tabla de ajustes (debe fallar)' as prueba;
+select * from public.ajustes;
+reset role;
+
+-- Apagarlo desde la moderación
+set role authenticated;
+set request.jwt.claims = '{"email":"mod@ejemplo.org"}';
+update public.ajustes set valor = false where clave = 'autopublicar';
+select 'T21 queda registrado quién apagó el interruptor' as prueba, cambiado_por
+  from public.ajustes where clave = 'autopublicar';
+reset role;
+
+set role anon;
+select public.crear_reporte('{"departamento":"Chocó","municipio":"Quibdó","tipo_residuo":"Vidrio","riesgo_sanitario":"No","notas":"[T22] en espera"}'::jsonb) as _ \gset
+reset role;
+select 'T22 apagado: entra sin publicar' as prueba, publicado, moderado
+  from public.reportes where notas = '[T22] en espera';
+
+-- Moderar: tocarla la marca y la firma
+set role authenticated;
+set request.jwt.claims = '{"email":"mod@ejemplo.org"}';
+update public.reportes set publicado = true where notas = '[T22] en espera';
+reset role;
+select 'T23 al tocarla queda moderada y firmada' as prueba, moderado, revisado_por
+  from public.reportes where notas = '[T22] en espera';
+
+select 'T24 los cuatro estados se distinguen' as prueba,
+  count(*) filter (where publicado and not moderado and not eliminado)     as sin_moderar_publicado,
+  count(*) filter (where publicado and moderado and not eliminado)         as moderado_publicado,
+  count(*) filter (where moderado and eliminado)                           as moderado_eliminado,
+  count(*) filter (where not publicado and not moderado and not eliminado) as en_espera
+  from public.reportes;
+
+-- Corregir contenido: antes estaba prohibido, ahora se permite a petición
+set role authenticated;
+set request.jwt.claims = '{"email":"mod@ejemplo.org"}';
+update public.reportes set notas = '[T22] corregido', municipio = 'Istmina'
+  where notas = '[T22] en espera';
+select 'T25 el moderador corrige texto y municipio' as prueba, notas, municipio
+  from public.reportes where notas like '[T22]%';
+update public.reportes_contacto set whatsapp = '3009998877'
+  where reporte_id = (select id from public.reportes where notas = '[T18] autopublicado');
+select 'T26 y corrige un teléfono mal escrito' as prueba, whatsapp
+  from public.reportes_contacto where whatsapp = '3009998877';
+
+-- Retirar
+update public.reportes set eliminado = true where notas like '[T22]%';
+reset role;
+set role anon;
+select 'T27 lo retirado desaparece de lo público' as prueba, count(*) as debe_ser_cero
+  from public.v_reportes_publicos where notas like '[T22]%';
+reset role;
+
+-- Borrado definitivo
+set role authenticated;
+set request.jwt.claims = '{"email":"mod@ejemplo.org"}';
+delete from public.reportes where notas like '[T22]%';
+reset role;
+select 'T28 borrado definitivo' as prueba, count(*) as quedan
+  from public.reportes where notas like '[T22]%';
+select 'T29 ningún contacto queda huérfano' as prueba, count(*) as huerfanos
+  from public.reportes_contacto rc
+  left join public.reportes r on r.id = rc.reporte_id where r.id is null;
+
+-- Quien no modera no borra
+set role authenticated;
+set request.jwt.claims = '{"email":"cualquiera@ejemplo.org"}';
+delete from public.reportes;
+reset role;
+select 'T30 un no-moderador no pudo borrar nada' as prueba, count(*) > 0 as siguen_ahi
+  from public.reportes;
