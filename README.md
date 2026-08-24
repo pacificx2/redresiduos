@@ -83,10 +83,12 @@ Las listas desplegables son exactamente las de la hoja `Listas`.
   columnas separadas, porque son tres preguntas distintas: si se ve, si alguien
   lo miró, y si un moderador lo retiró.
 - El aporte al directorio exige confirmar que se llamó al punto antes de proponerlo.
-- **Blanco, azul y pasteles**, con todo el texto por encima del mínimo de
-  contraste de la norma (4,5:1, y 3:1 en titulares grandes) en modo claro y
-  en modo oscuro. Se comprueba solo en `pruebas/navegador.mjs`, midiendo
-  sobre la página ya pintada y no sobre la hoja de estilos.
+- **Una sola paleta, de día.** Blanco, azul y pasteles, sin modo oscuro. Esto
+  se usa de día, en la calle, a menudo por gente que no eligió el modo oscuro
+  sino que se lo puso el sistema; respetarlo hacía que la herramienta pareciera
+  otra cosa. Todo el texto llega al mínimo de contraste de la norma (4,5:1, y
+  3:1 en titulares grandes), y se comprueba solo en `pruebas/navegador.mjs`
+  midiendo sobre la página ya pintada y no sobre la hoja de estilos.
 - **Una página por tipo, no pestañas.** Cada una tiene su dirección, su color
   y su contador, así que se pueden compartir por separado y volver atrás. Con
   pestañas, además, los contadores de las que no se habían visitado se

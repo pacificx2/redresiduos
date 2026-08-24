@@ -7,84 +7,49 @@
    ===================================================================== */
 
 /* =====================================================================
-   PALETA
-   Blanco, azul y pasteles.
+   PALETA · una sola, de día
 
-   REGLA QUE NO SE PUEDE ROMPER: los tres bloques de abajo definen
-   EXACTAMENTE los mismos tokens. La versión anterior olvidaba `--ink` e
-   `--ink-2` en el bloque de la media query, así que en un móvil puesto en
-   modo oscuro el texto quedaba casi negro sobre fondo casi negro: el
-   titular medía 1,06:1 de contraste, o sea invisible. Hay una prueba en
-   pruebas/navegador.mjs que compara los tres juegos de tokens para que no
-   vuelva a pasar.
+   No hay modo oscuro, y es a propósito. Esto se usa de día, en la calle,
+   con el teléfono a pleno sol y a menudo por gente que no eligió el modo
+   oscuro sino que se lo puso el sistema. Respetarlo hacía que la
+   herramienta pareciera otra cosa. Una sola paleta clara también quita de
+   en medio toda una clase de fallos: la anterior tenía el modo oscuro roto
+   porque un bloque olvidaba dos tokens, y el texto quedaba casi invisible.
 
-   Todo el texto llega al mínimo de la norma de accesibilidad (4,5:1, y
-   3:1 en los titulares grandes) en los dos modos. Se comprueba solo.
+   Blanco, azul y pasteles. Todo el texto llega al mínimo de la norma de
+   accesibilidad —4,5:1, y 3:1 en titulares grandes— y se comprueba solo
+   en pruebas/navegador.mjs, midiendo sobre la página ya pintada.
+
+   Si algún día hace falta modo oscuro, hay que definir TODOS estos tokens
+   en el bloque nuevo. Hay una prueba que lo exige.
    ===================================================================== */
 :root{
-  /* fondos */
-  --paper:#F1F6FB; --surface:#FFFFFF; --surface-2:#E3EDF7;
+  color-scheme: light;
+
+  /* fondos: papel con un punto de azul, para que no sea un blanco de oficina */
+  --paper:#F4F8FC; --surface:#FFFFFF; --surface-2:#E9F1F9;
   /* texto */
-  --ink:#0E2033; --ink-2:#2E4A69; --ink-3:#47617D;
-  /* líneas: `--line` separa por dentro, `--line-strong` dibuja el borde
-     de lo que es una pieza (tarjeta, ficha, campo). */
-  --line:#B8CEE0; --line-strong:#64839E;
+  --ink:#16283C; --ink-2:#39536F; --ink-3:#516B87;
+  /* líneas: `--line` separa por dentro, `--line-strong` dibuja el borde de
+     una pieza (tarjeta, ficha, campo) */
+  --line:#CBDDEC; --line-strong:#6E8DAA;
   /* azul de marca */
-  --deep:#0A5794; --deep-ink:#073C68;
-  --sobre-deep:#FFFFFF; --sobre-deep-ink:#FFFFFF;
-  /* pastel de acento: relleno claro, texto oscuro encima */
-  --hivis:#BCE0F4; --hivis-ink:#083A5F;
-  /* estados */
-  --danger:#9E2018; --danger-bg:#FCEBE9;
-  --warn:#74490A;   --warn-bg:#FBF1DE;
-  --ok:#0C6543;     --ok-bg:#E2F3EB;
-  --focus:#0A5794;
+  --deep:#0F5E9C; --deep-ink:#0B4676;
+  --sobre-deep:#FFFFFF;
+  /* acento pastel: relleno claro, texto oscuro encima */
+  --hivis:#BFE3F5; --hivis-ink:#0A3E63;
+  /* estados, en pastel */
+  --danger:#9C2118; --danger-bg:#FDEDEB;
+  --warn:#7A4C0A;   --warn-bg:#FCF3E2;
+  --ok:#0F6647;     --ok-bg:#E5F4ED;
+  --focus:#0F5E9C;
 
   /* UN COLOR POR TIPO. El mismo en el formulario, en el directorio y en la
-     moderación: si un reporte es ámbar en un sitio, es ámbar en los tres.
-     `--t-*-ink` es el texto que va sobre `--t-*-bg`, no sobre el papel. */
-  --t-rep:#A04600; --t-rep-bg:#FCEADA; --t-rep-ink:#7A3500;
-  --t-vol:#6A3CA0; --t-vol-bg:#EEE7FA; --t-vol-ink:#4E2A79;
-  --t-pun:#0A5794; --t-pun-bg:#DEEBF8; --t-pun-ink:#083A5F;
+     moderación. `--t-*-ink` es el texto que va sobre `--t-*-bg`. */
+  --t-rep:#B25A00; --t-rep-bg:#FDF0E0; --t-rep-ink:#7A3D00;
+  --t-vol:#7048B0; --t-vol-bg:#F2EBFC; --t-vol-ink:#4E2E80;
+  --t-pun:#0F5E9C; --t-pun-bg:#E4F0FA; --t-pun-ink:#0B4676;
 
-  --r:10px; --maxw:44rem;
-}
-
-/* Modo oscuro del sistema. Mismos tokens que arriba, sin faltar ninguno. */
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --paper:#0B1621; --surface:#12222F; --surface-2:#1A2E3E;
-    --ink:#E9F2F9; --ink-2:#BCCDDC; --ink-3:#97ADC0;
-    --line:#2C4256; --line-strong:#5A7B96;
-    --deep:#7BC3F1; --deep-ink:#081924;
-    --sobre-deep:#04121C; --sobre-deep-ink:#E9F2F9;
-    --hivis:#8ED2F4; --hivis-ink:#042031;
-    --danger:#FFA79D; --danger-bg:#3A1611;
-    --warn:#F2C273;   --warn-bg:#33250B;
-    --ok:#84D8AB;     --ok-bg:#0B2A1C;
-    --focus:#7BC3F1;
-    --t-rep:#F2A96A; --t-rep-bg:#33200C; --t-rep-ink:#F7C79A;
-    --t-vol:#C6A8F2; --t-vol-bg:#251A38; --t-vol-ink:#D8C3F7;
-    --t-pun:#7BC3F1; --t-pun-bg:#0E2637; --t-pun-ink:#A9D8F6;
-    --r:10px; --maxw:44rem;
-  }
-}
-
-/* Modo oscuro elegido a mano. Idéntico al de arriba. */
-:root[data-theme="dark"]{
-  --paper:#0B1621; --surface:#12222F; --surface-2:#1A2E3E;
-  --ink:#E9F2F9; --ink-2:#BCCDDC; --ink-3:#97ADC0;
-  --line:#2C4256; --line-strong:#5A7B96;
-  --deep:#7BC3F1; --deep-ink:#081924;
-  --sobre-deep:#04121C; --sobre-deep-ink:#E9F2F9;
-  --hivis:#8ED2F4; --hivis-ink:#042031;
-  --danger:#FFA79D; --danger-bg:#3A1611;
-  --warn:#F2C273;   --warn-bg:#33250B;
-  --ok:#84D8AB;     --ok-bg:#0B2A1C;
-  --focus:#7BC3F1;
-  --t-rep:#F2A96A; --t-rep-bg:#33200C; --t-rep-ink:#F7C79A;
-  --t-vol:#C6A8F2; --t-vol-bg:#251A38; --t-vol-ink:#D8C3F7;
-  --t-pun:#7BC3F1; --t-pun-bg:#0E2637; --t-pun-ink:#A9D8F6;
   --r:10px; --maxw:44rem;
 }
 
@@ -96,10 +61,14 @@ body{
 }
 .wrap{max-width:var(--maxw); margin:0 auto; padding:0 1rem 4rem}
 
-/* ---------- header ---------- */
+/* ---------- header ----------
+   Antes era una franja azul muy oscura. Era lo primero que se veía y lo
+   que más pesaba en la impresión de conjunto. Ahora es papel, con el
+   acento pastel sujetándola por abajo. */
 .top{
-  position:sticky; top:0; z-index:20; background:var(--deep-ink);
+  position:sticky; top:0; z-index:20; background:var(--surface);
   border-bottom:3px solid var(--hivis);
+  box-shadow:0 1px 0 var(--line);
 }
 .top-in{
   max-width:var(--maxw); margin:0 auto; padding:.7rem 1rem;
@@ -107,10 +76,10 @@ body{
 }
 .mark{
   font-family:Archivo,system-ui,sans-serif; font-weight:700; font-size:1rem;
-  letter-spacing:.02em; color:var(--sobre-deep-ink); line-height:1.2;
+  letter-spacing:.02em; color:var(--deep-ink); line-height:1.2;
 }
 .mark span{display:block; font-size:.66rem; font-weight:500; letter-spacing:.14em;
-  text-transform:uppercase; color:var(--hivis)}
+  text-transform:uppercase; color:var(--ink-3)}
 .proto{
   margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:.62rem;
   letter-spacing:.1em; text-transform:uppercase;

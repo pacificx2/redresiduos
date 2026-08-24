@@ -103,6 +103,11 @@ const navegador = await chromium.launch();
   comprobar('los estilos propios sí se cargan de forma normal',
     await p.evaluate(() => [...document.querySelectorAll('link[rel="stylesheet"]')]
       .some(l => new URL(l.href, location.href).pathname.endsWith('/estilos.css'))));
+  comprobar('la página declara que no ofrece variante oscura',
+    await p.evaluate(() => {
+      const m = document.querySelector('meta[name="color-scheme"]');
+      return !!m && m.content.trim() === 'light';
+    }));
   comprobar('los archivos propios llevan versión contra la caché',
     await p.evaluate(() => [...document.querySelectorAll('link[rel="stylesheet"],script[src]')]
       .filter(e => { const u = new URL(e.href || e.src, location.href);
@@ -542,16 +547,38 @@ const navegador = await chromium.launch();
     const cuerpo = css.slice(i, css.indexOf('}', i));
     return new Set((cuerpo.match(/--[a-z0-9-]+(?=\s*:)/g) || []));
   };
-  const claro  = tokens(':root{');
-  const oscuro = tokens(':root:not([data-theme="light"]){');
-  const manual = tokens(':root[data-theme="dark"]{');
+  const claro = tokens(':root{');
 
-  const iguales = (a, b) => a && b && a.size === b.size && [...a].every(t => b.has(t));
-  comprobar('el modo oscuro define los mismos tokens que el claro', iguales(claro, oscuro));
-  comprobar('el modo oscuro manual define los mismos que el automático', iguales(oscuro, manual));
-  if (claro && oscuro) {
-    const faltan = [...claro].filter(t => !oscuro.has(t));
-    if (faltan.length) console.log('     faltan en el modo oscuro: ' + faltan.join(', '));
+  /* No hay modo oscuro y es deliberado. Esta prueba no lo prohíbe: exige
+     que, si alguien lo añade, defina TODOS los tokens. La versión anterior
+     tenía uno que olvidaba `--ink` e `--ink-2`, y el texto quedaba casi
+     invisible en cualquier teléfono puesto en oscuro. */
+  const bloquesOscuros = [':root:not([data-theme="light"]){', ':root[data-theme="dark"]{']
+    .map(tokens).filter(Boolean);
+  comprobar('no hay un modo oscuro a medias',
+    bloquesOscuros.every(b => claro && b.size === claro.size && [...claro].every(t => b.has(t))));
+  if (bloquesOscuros.length === 0) console.log('     (no hay modo oscuro: una sola paleta, de día)');
+
+  comprobar('la hoja de estilos declara que es una paleta clara',
+    /color-scheme\s*:\s*light\s*;/.test(css));
+
+  /* Lo que motivó todo esto: con el teléfono en modo oscuro, el sitio
+     parecía otra cosa. Ahora tiene que salir claro igualmente. */
+  for (const tema of ['light','dark']) {
+    const ctx = await navegador.newContext({ ...devices['Pixel 7'], colorScheme: tema });
+    const p = await ctx.newPage();
+    await p.goto(RAIZ + '/index.html', { waitUntil:'domcontentloaded' });
+    await p.waitForSelector('#home.on');
+    const claras = await p.evaluate(() => {
+      const lum = s => { const [r,g,b] = (s.match(/[\d.]+/g)||[0,0,0]).slice(0,3).map(Number);
+        return (0.2126*r + 0.7152*g + 0.0722*b) / 255; };
+      return { papel: lum(getComputedStyle(document.body).backgroundColor),
+               cabecera: lum(getComputedStyle(document.querySelector('.top')).backgroundColor) };
+    });
+    comprobar('con el dispositivo en ' + tema + ' el fondo sigue siendo claro',
+      claras.papel > 0.85);
+    comprobar('y la cabecera también',  claras.cabecera > 0.85);
+    await ctx.close();
   }
 
   /* Contraste real, sobre las páginas ya pintadas, en los dos modos.
