@@ -122,3 +122,15 @@ set role anon;
 select 'T15 la vista pública muestra lo revisado' as prueba,
        departamento, municipio, tipo_residuo, estado from public.v_reportes_publicos;
 reset role;
+
+-- ====== Las funciones internas no son del público ======
+-- PostgreSQL concede EXECUTE a PUBLIC en cada función nueva. Estas dos
+-- pruebas existen porque el primer intento de revocarlo no funcionó:
+-- se revocaba de `anon` y el permiso seguía llegando por PUBLIC.
+set role anon;
+select 'T16 anon llama a registrar_envio (debe fallar)' as prueba;
+select public.registrar_envio();
+
+select 'T17 anon llama a ip_cliente (debe fallar)' as prueba;
+select public.ip_cliente();
+reset role;

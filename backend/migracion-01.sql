@@ -111,8 +111,7 @@ begin
   end if;
 end $$;
 
-revoke all on function public.registrar_envio() from anon, authenticated;
-revoke all on function public.ip_cliente() from anon, authenticated;
+
 
 
 -- ---------------------------------------------------------------------
@@ -221,9 +220,19 @@ begin
   return nuevo;
 end $$;
 
+-- PostgreSQL concede EXECUTE a PUBLIC en cada función que se crea. Sin
+-- revocarlo primero, un `revoke ... from anon` no sirve de nada: el
+-- permiso le sigue llegando por PUBLIC. Se cierra todo y se abre lo justo.
+revoke all on all functions in schema public from public;
+revoke all on all functions in schema public from anon, authenticated;
+
 grant execute on function public.crear_reporte(jsonb),
                           public.crear_voluntario(jsonb),
                           public.proponer_punto(jsonb) to anon, authenticated;
+
+-- La pantalla de moderación pregunta "¿soy moderador?" antes de pedir nada
+-- más. Devuelve un booleano sobre quien pregunta: no expone la lista.
+grant execute on function public.es_moderador() to authenticated;
 
 
 -- =====================================================================

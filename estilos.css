@@ -1,0 +1,320 @@
+/* =====================================================================
+   RED DE RESIDUOS DE LA EMERGENCIA · Reciclamores
+   Estilos compartidos por index.html, directorio.html, datos.html
+   y moderar.html.
+
+   No hay compilación: es CSS a mano, servido tal cual.
+   ===================================================================== */
+
+:root{
+  --paper:#EFF2EE; --surface:#FFFFFF; --surface-2:#E4E9E3;
+  --ink:#0F1C19; --ink-2:#3C4C47; --ink-3:#6B7B75;
+  --line:#CDD6D0; --line-strong:#A9B7B0;
+  --deep:#0E5C4A; --deep-ink:#0A4438;
+  --hivis:#C3D62B; --hivis-ink:#4A5406;
+  --danger:#A81E14; --danger-bg:#FBE9E7;
+  --warn:#8A5200; --warn-bg:#FCF0DC;
+  --ok:#10633A; --ok-bg:#E2F0E7;
+  --focus:#0E5C4A;
+  --r:10px; --maxw:44rem;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0B1513; --surface:#13201D; --surface-2:#1B2A26;
+    --ink-3:#83978F;
+    --line:#2A3A35; --line-strong:#3D504A;
+    --deep:#4FB398; --deep-ink:#8ED4C0;
+    --hivis:#C3D62B; --hivis-ink:#1A1F02;
+    --danger:#FF9E94; --danger-bg:#33130F;
+    --warn:#F0BE6B; --warn-bg:#2C1F08;
+    --ok:#79D3A2; --ok-bg:#0D2618;
+    --focus:#4FB398;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0B1513; --surface:#13201D; --surface-2:#1B2A26;
+  --ink:#E7EEE9; --ink-2:#B2C1BA; --ink-3:#83978F;
+  --line:#2A3A35; --line-strong:#3D504A;
+  --deep:#4FB398; --deep-ink:#8ED4C0;
+  --hivis:#C3D62B; --hivis-ink:#1A1F02;
+  --danger:#FF9E94; --danger-bg:#33130F;
+  --warn:#F0BE6B; --warn-bg:#2C1F08;
+  --ok:#79D3A2; --ok-bg:#0D2618;
+  --focus:#4FB398;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  font-size:16px; line-height:1.55; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 1rem 4rem}
+
+/* ---------- header ---------- */
+.top{
+  position:sticky; top:0; z-index:20; background:var(--deep-ink);
+  border-bottom:3px solid var(--hivis);
+}
+:root[data-theme="dark"] .top{background:#0A1A16}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .top{background:#0A1A16}}
+.top-in{
+  max-width:var(--maxw); margin:0 auto; padding:.7rem 1rem;
+  display:flex; align-items:center; gap:.7rem; flex-wrap:wrap;
+}
+.mark{
+  font-family:Archivo,system-ui,sans-serif; font-weight:700; font-size:1rem;
+  letter-spacing:.02em; color:#fff; line-height:1.2;
+}
+.mark span{display:block; font-size:.66rem; font-weight:500; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--hivis)}
+.proto{
+  margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:.62rem;
+  letter-spacing:.1em; text-transform:uppercase;
+  background:var(--hivis); color:var(--hivis-ink);
+  padding:.25rem .5rem; border-radius:3px; font-weight:500;
+}
+
+/* ---------- type ---------- */
+h1,h2,h3{font-family:Archivo,system-ui,sans-serif; text-wrap:balance; margin:0}
+h1{font-size:1.5rem; font-weight:700; line-height:1.2; letter-spacing:-.01em}
+h2{font-size:1.15rem; font-weight:700; line-height:1.25}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-3); font-weight:500;
+}
+.lede{color:var(--ink-2); font-size:.95rem}
+.fine{font-size:.82rem; color:var(--ink-3)}
+
+/* ---------- home ---------- */
+.intro{padding:1.6rem 0 1.1rem; display:flex; flex-direction:column; gap:.6rem}
+.cards{display:flex; flex-direction:column; gap:.7rem; margin-top:.4rem}
+.card{
+  display:flex; gap:.9rem; align-items:flex-start; width:100%; text-align:left;
+  background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--deep);
+  border-radius:var(--r); padding:1rem; cursor:pointer; color:inherit;
+  font:inherit; transition:border-color .12s, transform .12s;
+}
+.card:hover{border-color:var(--line-strong); border-left-color:var(--hivis)}
+.card:active{transform:translateY(1px)}
+.card-n{
+  font-family:"IBM Plex Mono",monospace; font-size:.8rem; font-weight:500;
+  color:var(--deep); flex:none; padding-top:.1rem;
+}
+.card h2{margin-bottom:.15rem}
+.card p{margin:0; font-size:.87rem; color:var(--ink-2)}
+
+/* ---------- notices ---------- */
+.note{
+  border-radius:var(--r); padding:.85rem 1rem; font-size:.87rem;
+  border:1px solid; display:flex; flex-direction:column; gap:.4rem;
+}
+.note h3{font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; font-family:"IBM Plex Mono",monospace; font-weight:500}
+.note ul{margin:.1rem 0 0; padding-left:1.1rem; display:flex; flex-direction:column; gap:.3rem}
+.note-warn{background:var(--warn-bg); border-color:var(--warn); color:var(--warn)}
+.note-danger{background:var(--danger-bg); border-color:var(--danger); color:var(--danger)}
+.note-ok{background:var(--ok-bg); border-color:var(--ok); color:var(--ok)}
+.note-plain{background:var(--surface-2); border-color:var(--line); color:var(--ink-2)}
+.note strong{color:inherit}
+
+/* ---------- forms ---------- */
+.view{display:none}
+.view.on{display:block}
+.back{
+  background:none; border:none; color:var(--deep); font:inherit; font-size:.85rem;
+  padding:.9rem 0 .3rem; cursor:pointer; display:flex; align-items:center; gap:.35rem;
+}
+form{display:flex; flex-direction:column; gap:1.05rem; margin-top:1.1rem}
+.field{display:flex; flex-direction:column; gap:.35rem}
+label{font-weight:600; font-size:.88rem; line-height:1.35}
+.hint{font-size:.78rem; color:var(--ink-3)}
+.req{color:var(--danger); font-weight:400}
+input[type=text],input[type=tel],input[type=email],input[type=date],select,textarea{
+  width:100%; padding:.7rem .75rem; font:inherit; font-size:1rem;
+  background:var(--surface); color:var(--ink);
+  border:1px solid var(--line-strong); border-radius:8px;
+}
+textarea{min-height:5rem; resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{
+  outline:3px solid var(--focus); outline-offset:2px;
+}
+.check{
+  display:flex; gap:.6rem; align-items:flex-start; background:var(--surface-2);
+  border:1px solid var(--line); border-radius:var(--r); padding:.8rem;
+}
+.check input{margin-top:.25rem; width:1.15rem; height:1.15rem; flex:none; accent-color:var(--deep)}
+.check label{font-weight:400; font-size:.85rem}
+
+/* GPS */
+.gps{display:flex; flex-direction:column; gap:.5rem}
+.gps-btn{
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+  background:var(--hivis); color:var(--hivis-ink); border:none; border-radius:8px;
+  padding:.95rem; font-family:Archivo,sans-serif; font-weight:700; font-size:.95rem;
+  cursor:pointer; letter-spacing:.01em;
+}
+.gps-out{
+  font-family:"IBM Plex Mono",monospace; font-size:.85rem; font-variant-numeric:tabular-nums;
+  background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:8px;
+  padding:.7rem; color:var(--ink-2); word-break:break-all;
+}
+.gps-out.set{border-style:solid; border-color:var(--ok); color:var(--ok); background:var(--ok-bg)}
+
+.submit{
+  background:var(--deep); color:#fff; border:none; border-radius:8px; padding:1rem;
+  font-family:Archivo,sans-serif; font-weight:700; font-size:1rem; cursor:pointer;
+}
+:root[data-theme="dark"] .submit{color:#06120F}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .submit{color:#06120F}}
+.submit:active{transform:translateY(1px)}
+
+/* result */
+.rowout{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  overflow-x:auto; margin-top:.9rem;
+}
+table{border-collapse:collapse; font-size:.8rem; width:100%}
+th,td{text-align:left; padding:.5rem .7rem; border-bottom:1px solid var(--line); vertical-align:top}
+th{font-family:"IBM Plex Mono",monospace; font-weight:500; font-size:.68rem; letter-spacing:.06em;
+   text-transform:uppercase; color:var(--ink-3); white-space:nowrap}
+td{color:var(--ink)}
+tr:last-child th,tr:last-child td{border-bottom:none}
+
+.hidden{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* =====================================================================
+   A PARTIR DE AQUÍ: pantallas añadidas después del prototipo
+   (directorio público, aviso de datos, moderación)
+   ===================================================================== */
+
+/* ---------- pie y navegación entre páginas ---------- */
+.pie{
+  margin-top:2.5rem; padding-top:1.1rem; border-top:1px solid var(--line);
+  display:flex; flex-wrap:wrap; gap:.4rem 1.1rem; align-items:baseline;
+}
+.pie a{color:var(--deep); font-size:.85rem}
+.pie .fine{width:100%; margin:.3rem 0 0}
+.volver{
+  display:inline-flex; align-items:center; gap:.35rem; color:var(--deep);
+  font-size:.85rem; text-decoration:none; padding:.9rem 0 .3rem;
+}
+.volver:hover{text-decoration:underline}
+
+/* ---------- prosa larga (aviso de datos) ---------- */
+.prosa{max-width:38rem}
+.prosa h2{margin:2rem 0 .5rem}
+.prosa h3{font-size:.95rem; margin:1.3rem 0 .3rem}
+.prosa p,.prosa li{font-size:.92rem; color:var(--ink-2)}
+.prosa ul,.prosa ol{padding-left:1.2rem; display:flex; flex-direction:column; gap:.45rem}
+.prosa a{color:var(--deep)}
+.prosa dl{margin:.6rem 0; display:flex; flex-direction:column; gap:.7rem}
+.prosa dt{font-weight:600; font-size:.88rem; color:var(--ink)}
+.prosa dd{margin:.15rem 0 0; font-size:.9rem; color:var(--ink-2)}
+.indice{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r);
+  padding:.9rem 1rem; margin:1.2rem 0;
+}
+.indice ol{margin:.4rem 0 0; gap:.25rem}
+.indice li{font-size:.87rem}
+
+/* ---------- pestañas ---------- */
+.tabs{
+  display:flex; gap:.3rem; margin:1.2rem 0 .2rem; overflow-x:auto;
+  border-bottom:1px solid var(--line); padding-bottom:0;
+}
+.tab{
+  background:none; border:none; border-bottom:3px solid transparent;
+  font:inherit; font-size:.87rem; font-weight:600; color:var(--ink-3);
+  padding:.6rem .7rem; cursor:pointer; white-space:nowrap;
+}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--hivis)}
+.tab .n{
+  font-family:"IBM Plex Mono",monospace; font-size:.72rem; font-weight:500;
+  background:var(--surface-2); color:var(--ink-2);
+  padding:.05rem .35rem; border-radius:99px; margin-left:.3rem;
+}
+
+/* ---------- filtros ---------- */
+.filtros{
+  display:flex; flex-wrap:wrap; gap:.6rem; margin:1.1rem 0;
+}
+.filtros .field{flex:1 1 11rem; gap:.25rem}
+.filtros label{font-size:.75rem; font-family:"IBM Plex Mono",monospace;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500}
+.filtros select,.filtros input{padding:.55rem .6rem; font-size:.92rem}
+
+/* ---------- fichas de resultado ---------- */
+.lista{display:flex; flex-direction:column; gap:.7rem; margin-top:1rem; min-width:0}
+.ficha{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  border-left:4px solid var(--line-strong); padding:.95rem 1rem;
+  min-width:0; overflow-wrap:break-word;
+}
+.ficha.pendiente{border-left-color:var(--warn)}
+.ficha.publicada{border-left-color:var(--ok)}
+.ficha.peligro{border-left-color:var(--danger)}
+.ficha h3{font-size:1rem; margin-bottom:.15rem}
+.ficha-meta{
+  font-family:"IBM Plex Mono",monospace; font-size:.72rem; letter-spacing:.05em;
+  color:var(--ink-3); text-transform:uppercase; margin-bottom:.45rem;
+}
+.ficha dl{
+  /* `minmax(0,1fr)` y no `1fr`: sin esto, una palabra larga sin espacios
+     (un enlace pegado, un texto escrito de corrido) ensancha la rejilla
+     y empuja la página entera a lo ancho en un teléfono. */
+  display:grid; grid-template-columns:auto minmax(0,1fr); gap:.25rem .8rem;
+  margin:.5rem 0 0; font-size:.85rem;
+}
+.ficha dt{color:var(--ink-3); white-space:nowrap}
+.ficha dd{margin:0; color:var(--ink); overflow-wrap:anywhere; min-width:0}
+.ficha .acciones{
+  display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.85rem;
+  padding-top:.75rem; border-top:1px solid var(--line);
+}
+.ficha img{
+  max-width:100%; border-radius:8px; margin-top:.6rem; border:1px solid var(--line);
+}
+
+/* ---------- etiquetas ---------- */
+.pill{
+  display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:.66rem;
+  letter-spacing:.08em; text-transform:uppercase; font-weight:500;
+  padding:.18rem .45rem; border-radius:3px; border:1px solid;
+  background:var(--surface-2); border-color:var(--line); color:var(--ink-2);
+}
+.pill-ok{background:var(--ok-bg); border-color:var(--ok); color:var(--ok)}
+.pill-warn{background:var(--warn-bg); border-color:var(--warn); color:var(--warn)}
+.pill-danger{background:var(--danger-bg); border-color:var(--danger); color:var(--danger)}
+
+/* ---------- botones secundarios ---------- */
+.btn{
+  font:inherit; font-size:.85rem; font-weight:600; cursor:pointer;
+  border-radius:8px; padding:.55rem .85rem; border:1px solid var(--line-strong);
+  background:var(--surface); color:var(--ink);
+}
+.btn:hover{border-color:var(--deep)}
+.btn:disabled{opacity:.5; cursor:default}
+.btn-ok{background:var(--deep); border-color:var(--deep); color:#fff}
+:root[data-theme="dark"] .btn-ok{color:#06120F}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn-ok{color:#06120F}}
+.btn-danger{border-color:var(--danger); color:var(--danger)}
+
+/* ---------- estados vacíos y de carga ---------- */
+.vacio{
+  text-align:center; padding:2.5rem 1rem; color:var(--ink-3); font-size:.9rem;
+  border:1px dashed var(--line-strong); border-radius:var(--r); margin-top:1rem;
+}
+.cargando{color:var(--ink-3); font-size:.88rem; padding:1.4rem 0}
+
+/* ---------- caja de acceso ---------- */
+.acceso{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  padding:1.3rem; margin-top:1.4rem; display:flex; flex-direction:column; gap:.9rem;
+}
+.sesion{
+  display:flex; flex-wrap:wrap; align-items:center; gap:.6rem;
+  font-size:.82rem; color:var(--ink-3); margin-top:.9rem;
+}
+.sesion .quien{font-family:"IBM Plex Mono",monospace; color:var(--ink-2)}
+.sesion button{margin-left:auto}
