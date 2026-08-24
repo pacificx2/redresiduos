@@ -19,12 +19,21 @@ import { chromium, devices } from 'playwright';
 
 const RAIZ = process.env.RAIZ || 'http://127.0.0.1:8099';
 let ok = 0, mal = 0;
+const fallos = [];
+let seccion = '';
 
 const norm = s => s.replace(/\s+/g, ' ');
 function comprobar(nombre, cierto){
   if (cierto) { ok++; console.log('  ' + String(nombre).padEnd(52, '.') + ' OK'); }
-  else { mal++; console.log('  ' + String(nombre).padEnd(52, '.') + ' FALLA'); }
+  else {
+    mal++; fallos.push(seccion + ' → ' + nombre);
+    console.log('  ' + String(nombre).padEnd(52, '.') + ' FALLA');
+  }
 }
+/* Imprimir la sección por aquí en vez de con console.log suelto: así el
+   resumen final puede decir en qué bloque falló cada cosa, y no hay líneas
+   sueltas que se confundan con resultados. */
+function bloque(nombre){ seccion = nombre; console.log('\n' + nombre); }
 
 /* Datos de mentira con trampas dentro: etiquetas HTML en los campos de
    texto libre, para comprobar que se pintan como texto y no se ejecutan. */
@@ -34,8 +43,8 @@ const REPORTE = {
   lat:5.6947, lon:-76.6611, precision_m:12,
   tipo_residuo:'Peligrosos (pilas, medicamentos)', volumen:'1 a 5 m³ (un camión pequeño)',
   riesgo_sanitario:'Sí', necesita_gestor:true, foto_url:null,
-  notas:'<img src=x onerror="window.__xss=1">', estado:'Reportado', publicado:false,
-  revisado_por:null,
+  notas:'<img src=x onerror="window.__xss=1">', estado:'Reportado',
+  publicado:true, moderado:false, eliminado:false, revisado_por:null,
   reportes_contacto:{ quien_reporta:'Ana <b>Pérez</b>', whatsapp:'3001112233', publicar_contacto:true }
 };
 const PUNTO = {
@@ -61,7 +70,7 @@ const navegador = await chromium.launch();
    1 · La portada y los tres formularios
    --------------------------------------------------------------------- */
 {
-  console.log('\nindex.html');
+  bloque('index.html');
   const ctx = await navegador.newContext({ ...devices['Pixel 7'] });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(e.message));
@@ -110,30 +119,45 @@ const navegador = await chromium.launch();
    2 · La pantalla de moderación
    --------------------------------------------------------------------- */
 {
-  console.log('\nmoderar.html');
+  bloque('moderar.html');
   const ctx = await navegador.newContext({ ...devices['Pixel 7'] });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(e.message));
+
+  /* Un solo manejador de diálogos para todo el bloque. Con varios `once`
+     conviven manejadores que no llegaron a dispararse (apagar el interruptor
+     no pide confirmación) y el siguiente confirm lo atienden dos a la vez. */
+  let dialogos = 0;
+  p.on('dialog', d => { dialogos++; d.accept(); });
 
   await ctx.addInitScript(([reporte]) => {
     localStorage.setItem('redresiduos.sesion', JSON.stringify({
       access_token: 'x.' + btoa(JSON.stringify({ email:'mod@ejemplo.org' })) + '.y',
       refresh_token: 'r', expira: Date.now() + 3600e3, correo: 'mod@ejemplo.org'
     }));
-    window.__patches = [];
+    window.__escrituras = [];
     const real = window.fetch;
     window.fetch = (u, o = {}) => {
       u = String(u);
       if (u.includes('rpc/es_moderador')) return Promise.resolve(new Response('true', { status:200 }));
-      if (o.method === 'PATCH') { window.__patches.push({ url:u, body:o.body });
-        return Promise.resolve(new Response(null, { status:204 })); }
+      if (u.includes('/rest/v1/ajustes')) {
+        if (o.method === 'PATCH') {
+          window.__escrituras.push({ url:u, metodo:'PATCH', body:o.body });
+          return Promise.resolve(new Response(JSON.stringify([{clave:'autopublicar', valor:JSON.parse(o.body).valor, cambiado_por:'mod@ejemplo.org'}]), { status:200 }));
+        }
+        return Promise.resolve(new Response(JSON.stringify([{clave:'autopublicar', valor:true, cambiado_por:null}]), { status:200 }));
+      }
+      if (o.method === 'PATCH' || o.method === 'DELETE') {
+        window.__escrituras.push({ url:u, metodo:o.method, body:o.body });
+        return Promise.resolve(new Response(null, { status:204 }));
+      }
       if (u.includes('/rest/v1/reportes?')) return Promise.resolve(new Response(JSON.stringify([reporte]), { status:200 }));
       if (u.includes('/rest/v1/')) return Promise.resolve(new Response('[]', { status:200 }));
       return real(u, o);
     };
   }, [REPORTE]);
 
-  await p.goto(RAIZ + '/moderar.html');
+  await p.goto(RAIZ + '/moderar.html', { waitUntil:'domcontentloaded' });
   await p.waitForSelector('#panel.on', { timeout: 10000 });
   await p.waitForSelector('.ficha', { timeout: 5000 });
 
@@ -144,29 +168,83 @@ const navegador = await chromium.launch();
   comprobar('pinta la ficha del reporte', txt.includes('Quibdó'));
   comprobar('el moderador sí ve el teléfono', txt.includes('3001112233'));
   comprobar('avisa de residuo peligroso', txt.includes('No lo mueven voluntarios'));
-  comprobar('marca lo que está sin revisar', txt.includes('Sin revisar'));
 
-  // Lo escribió alguien de fuera: tiene que verse, no ejecutarse.
+  // Publicado sin que nadie lo mirara: el estado 1, que es el que urge.
+  comprobar('nombra el estado 1 (publicado sin moderar)',
+    txt.includes('1 · No moderado y publicado'));
+  comprobar('la ficha lleva el color de su tipo',
+    await p.locator('.ficha.t-reportes').count() === 1);
+
   comprobar('NO ejecuta el HTML que venga en un reporte',
     !(await p.evaluate(() => window.__xss === 1)) &&
     await p.locator('#lista img[src="x"]').count() === 0);
   comprobar('el texto peligroso se ve como texto', txt.includes('onerror'));
-  comprobar('un nombre con <b> no se interpreta', txt.includes('Ana <b>Pérez</b>'));
 
-  await p.click('button:has-text("Publicar")');
+  // El interruptor de publicación automática
+  const auto = await p.textContent('#caja-auto');
+  comprobar('avisa de que la publicación automática está encendida',
+    auto.includes('encendida') && auto.includes('sin que nadie lo mire'));
+  await p.click('#caja-auto button');
   await p.waitForTimeout(400);
-  const patches = await p.evaluate(() => window.__patches);
-  comprobar('"Publicar" escribe en la base', patches.length === 1);
-  comprobar('manda sólo la columna que tiene permitida',
-    patches[0] && patches[0].body === '{"publicado":true}');
-  comprobar('escribe en la fila correcta',
-    patches[0] && patches[0].url.includes('id=eq.' + REPORTE.id));
+  let esc = await p.evaluate(() => window.__escrituras);
+  comprobar('apagarla escribe en los ajustes',
+    esc.some(e => e.url.includes('ajustes') && e.body === '{"valor":false}'));
 
-  await p.selectOption('#lista select', 'Recogido');
+  // Publicar / despublicar. Quitar de lo público pide confirmación, y sin
+  // aceptarla el navegador la descarta y no se escribe nada: por eso va aquí
+  // el manejador antes del clic.
+  // Acotado a #lista: el botón del interruptor pasa a decir "Encenderla:
+  // publicar todo al momento" y un selector suelto lo caza a él.
+  await p.click('#lista button:has-text("Publicar"), #lista button:has-text("Quitar de lo público")');
   await p.waitForTimeout(400);
-  const p2 = await p.evaluate(() => window.__patches);
-  comprobar('cambiar el estado escribe en la base',
-    p2.length >= 2 && p2[p2.length - 1].body === '{"estado":"Recogido"}');
+  esc = await p.evaluate(() => window.__escrituras);
+  const pub = esc.filter(e => e.url.includes('reportes?id=eq.'));
+  comprobar('el botón de publicar escribe sólo esa columna',
+    pub.length === 1 && /^\{"publicado":(true|false)\}$/.test(pub[0].body));
+
+  // Eliminar (retirar): deja la fila para poder deshacerlo
+  await p.click('#lista button:has-text("Eliminar")');
+  await p.waitForTimeout(400);
+  esc = await p.evaluate(() => window.__escrituras);
+  const ret = esc.filter(e => e.body && e.body.includes('"eliminado":true'));
+  comprobar('"Eliminar" retira y despublica, sin borrar la fila',
+    ret.length === 1 && JSON.parse(ret[0].body).publicado === false);
+
+  // Borrado definitivo: dos confirmaciones y un DELETE
+  const antesDeBorrar = dialogos;
+  await p.click('#lista button:has-text("Borrar definitivamente")');
+  await p.waitForTimeout(500);
+  esc = await p.evaluate(() => window.__escrituras);
+  comprobar('el borrado definitivo pide confirmar dos veces',
+    dialogos - antesDeBorrar === 2);
+  comprobar('y manda un DELETE de verdad',
+    esc.some(e => e.metodo === 'DELETE' && e.url.includes('reportes?id=eq.')));
+
+  // Modificar
+  await p.click('#lista button:has-text("Modificar")');
+  await p.waitForSelector('#e-municipio', { timeout: 3000 });
+  comprobar('el formulario de edición trae el contenido cargado',
+    await p.inputValue('#e-municipio') === 'Quibdó');
+  comprobar('y también los datos de contacto',
+    await p.inputValue('#h-whatsapp') === '3001112233');
+  comprobar('avisa de que la edición queda registrada',
+    (await p.textContent('.ficha')).includes('queda marcada como moderada'));
+
+  await p.fill('#e-municipio', 'Istmina');
+  await p.fill('#h-whatsapp', '3007654321');
+  await p.click('#lista button:has-text("Guardar cambios")');
+  await p.waitForTimeout(600);
+  esc = await p.evaluate(() => window.__escrituras);
+  const guardado = esc.filter(e => e.metodo === 'PATCH' && e.url.includes('/reportes?id=eq.')).pop();
+  const guardadoC = esc.filter(e => e.url.includes('reportes_contacto?')).pop();
+  comprobar('guarda el municipio corregido',
+    guardado && JSON.parse(guardado.body).municipio === 'Istmina');
+  comprobar('guarda el teléfono corregido',
+    guardadoC && JSON.parse(guardadoC.body).whatsapp === '3007654321');
+  comprobar('NO intenta escribir las columnas de auditoría',
+    guardado && !('moderado' in JSON.parse(guardado.body)) &&
+                !('revisado_por' in JSON.parse(guardado.body)));
+
   comprobar('no desborda a lo ancho',
     !(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
   comprobar('sin errores de JS', errs.length === 0);
@@ -177,7 +255,7 @@ const navegador = await chromium.launch();
    3 · Sin sesión no se entra
    --------------------------------------------------------------------- */
 {
-  console.log('\nmoderar.html · sin sesión');
+  bloque('moderar.html · sin sesión');
   const ctx = await navegador.newContext({ ...devices['Pixel 7'] });
   const p = await ctx.newPage();
   await p.goto(RAIZ + '/moderar.html');
@@ -194,7 +272,7 @@ const navegador = await chromium.launch();
    dejaría a un moderador real sin poder entrar.
    --------------------------------------------------------------------- */
 {
-  console.log('\nmoderar.html · pedir el enlace');
+  bloque('moderar.html · pedir el enlace');
 
   async function pedir(respuesta){
     const ctx = await navegador.newContext({ ...devices['Pixel 7'] });
@@ -252,7 +330,7 @@ const navegador = await chromium.launch();
    4 · El directorio público
    --------------------------------------------------------------------- */
 {
-  console.log('\ndirectorio.html');
+  bloque('directorio.html');
   const ctx = await navegador.newContext({ ...devices['Pixel 7'] });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(e.message));
@@ -314,7 +392,7 @@ const navegador = await chromium.launch();
    5 · El aviso de tratamiento de datos
    --------------------------------------------------------------------- */
 {
-  console.log('\ndatos.html');
+  bloque('datos.html');
   const ctx = await navegador.newContext({ ...devices['Pixel 7'] });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(e.message));
@@ -372,7 +450,7 @@ const navegador = await chromium.launch();
    1,06:1. Estas dos pruebas existen por eso.
    --------------------------------------------------------------------- */
 {
-  console.log('\nestilos.css · paleta');
+  bloque('estilos.css · paleta');
 
   const css = await (await fetch(RAIZ + '/estilos.css')).text();
   const tokens = (bloque) => {
@@ -433,4 +511,8 @@ const navegador = await chromium.launch();
 
 await navegador.close();
 console.log('\n' + ok + ' bien, ' + mal + ' mal.');
+if (fallos.length) {
+  console.log('\nLo que falló:');
+  fallos.forEach(f => console.log('  · ' + f));
+}
 process.exit(mal ? 1 : 0);

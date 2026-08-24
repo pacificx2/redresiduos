@@ -62,27 +62,32 @@
 <section id="panel" class="view">
   <div class="intro">
     <p class="eyebrow">Bandeja de revisión</p>
-    <h1>Lo que está esperando</h1>
+    <h1>Lo que está entrando</h1>
   </div>
 
-  <div class="note note-warn" style="margin-bottom:.4rem">
+  <div class="note note-warn" style="margin-bottom:.6rem">
     <h3>Esta pantalla muestra datos personales</h3>
     <p style="margin:0">Nombres, teléfonos y ubicaciones de gente en zona de
     emergencia. No la abra en un equipo compartido y no comparta capturas.</p>
   </div>
 
+  <div id="caja-auto"></div>
+
   <div class="tabs" role="tablist">
-    <button class="tab" role="tab" id="tab-reportes"    onclick="verPestana('reportes')">Reportes <span class="n" id="n-reportes">·</span></button>
-    <button class="tab" role="tab" id="tab-voluntarios" onclick="verPestana('voluntarios')">Voluntarios <span class="n" id="n-voluntarios">·</span></button>
-    <button class="tab" role="tab" id="tab-puntos"      onclick="verPestana('puntos')">Puntos <span class="n" id="n-puntos">·</span></button>
+    <button class="tab t-reportes"    role="tab" id="tab-reportes"    onclick="verPestana('reportes')">Residuos <span class="n" id="n-reportes">·</span></button>
+    <button class="tab t-voluntarios" role="tab" id="tab-voluntarios" onclick="verPestana('voluntarios')">Voluntarios <span class="n" id="n-voluntarios">·</span></button>
+    <button class="tab t-puntos"      role="tab" id="tab-puntos"      onclick="verPestana('puntos')">Puntos <span class="n" id="n-puntos">·</span></button>
   </div>
 
   <div class="filtros">
     <div class="field">
-      <label for="f-estado">Mostrar</label>
+      <label for="f-estado">Estado</label>
       <select id="f-estado" onchange="cargar()">
-        <option value="pendientes">Sin revisar</option>
-        <option value="publicados">Ya publicados</option>
+        <option value="sin_revisar">Todo lo que falta por revisar</option>
+        <option value="no_moderado_publicado">1 · No moderado y publicado</option>
+        <option value="moderado_publicado">2 · Moderado y publicado</option>
+        <option value="moderado_eliminado">3 · Moderado y eliminado</option>
+        <option value="en_espera">4 · En espera de moderación</option>
         <option value="todos">Todo</option>
       </select>
     </div>
@@ -92,6 +97,7 @@
     </div>
   </div>
 
+  <p class="cinta" id="cinta"></p>
   <div id="lista" class="lista"></div>
 
   <div class="sesion">
@@ -113,21 +119,48 @@
 /* =====================================================================
    MODERACIÓN
 
-   Esta página no decide nada: sólo pide. Quién puede leer los teléfonos
-   y quién puede publicar lo impone el motor con seguridad a nivel de fila
-   (ver backend/schema.sql). Si alguien abre esta página sin ser moderador,
-   la base le devuelve listas vacías y ningún dato personal.
+   Esta página no decide nada: sólo pide. Quién puede leer los teléfonos,
+   quién puede publicar, corregir o borrar lo impone el motor con seguridad
+   a nivel de fila (ver backend/schema.sql). Si alguien abre esta página sin
+   ser moderador, la base le devuelve listas vacías y ningún dato personal.
+
+   LOS CUATRO ESTADOS
+   Tres columnas independientes —`publicado`, `moderado`, `eliminado`—
+   porque son tres preguntas distintas: si se ve, si alguien lo miró, y si
+   un moderador lo retiró. De ahí:
+     1 · publicado y sin moderar ..... entró y salió sin que nadie lo viera
+     2 · publicado y moderado ........ alguien lo revisó y lo dejó fuera
+     3 · eliminado ................... alguien lo revisó y lo retiró
+     4 · ni publicado ni moderado .... entró y está esperando
    ===================================================================== */
 
 var CLAVE = 'redresiduos.sesion';
 var sesion = null;
 var pestana = 'reportes';
+var editando = null;
 
-var ESTADOS = ['Reportado','En gestión','Voluntarios asignados','Recogido',
-               'Sin solución aún','Duplicado'];
-var VERIFICACIONES = ['Verificado','Por verificar','No se pudo contactar'];
+/* Los vocabularios son los mismos de la hoja "Listas" del Excel y los mismos
+   que valida el motor. Si aquí sobrara uno, el guardado fallaría con un error
+   del tipo enumerado, no con un dato malo dentro. */
 var DEPARTAMENTOS = ['Chocó','Risaralda','Valle del Cauca','Caldas','Quindío',
   'Antioquia','Cauca','Tolima','Cundinamarca','Bogotá D.C.','Nariño','Huila','Otro'];
+var TIPOS_RESIDUO = ['Plástico (botellas, empaques)','Icopor','Cartón y papel',
+  'Bolsas y plástico film','Vidrio','Latas y metal','Ropa y textiles',
+  'Orgánicos / alimentos','Mezclado sin separar','RAEE (electrónicos)',
+  'Peligrosos (pilas, medicamentos)','Escombros','Otro'];
+var VOLUMENES = ['Menos de 1 m³ (unas pocas bolsas)','1 a 5 m³ (un camión pequeño)',
+  '5 a 20 m³ (un camión grande)','Más de 20 m³','No sé calcularlo'];
+var SINO = ['Sí','No','No sé'];
+var ESTADOS = ['Reportado','En gestión','Voluntarios asignados','Recogido',
+  'Sin solución aún','Duplicado'];
+var ROLES = ['Líder de zona','Voluntario de campo','Transporte / vehículo',
+  'Bodega o acopio temporal','Comunicación y convocatoria','Contacto institucional','Otro'];
+var DISPONIBILIDADES = ['Tiempo completo','Medio tiempo','Solo fines de semana',
+  'Por jornadas puntuales','Solo apoyo remoto'];
+var TIPOS_GESTOR = ['Asociación de recicladores','Reciclador de oficio independiente',
+  'Punto limpio / ECA','Bodega de reciclaje','Gestor de RAEE','Compostaje',
+  'Empresa de aseo del municipio','Otro'];
+var VERIFICACIONES = ['Verificado','Por verificar','No se pudo contactar'];
 var PELIGROSOS = ['RAEE (electrónicos)','Peligrosos (pilas, medicamentos)','Escombros'];
 
 /* Todo lo que viene de la base lo escribió alguien de fuera. Nunca se
@@ -144,7 +177,6 @@ function ver(id){
   for (var i = 0; i < vistas.length; i++) vistas[i].classList.remove('on');
   document.getElementById(id).classList.add('on');
 }
-
 /* ---------- sesión ---------- */
 function guardarSesion(s){
   sesion = s;
@@ -347,6 +379,7 @@ function arrancar(){
     });
     ver('panel');
     verPestana('reportes');
+    cargarAjuste();
   }).catch(function(){
     borrarSesion();
     ver('acceso');
@@ -356,53 +389,180 @@ function arrancar(){
   });
 }
 
+/* =====================================================================
+   QUÉ SE PUEDE CORREGIR DE CADA TIPO
+
+   Estas listas son la única definición del formulario de edición: la
+   pantalla se construye a partir de ellas. Añadir un campo aquí lo añade
+   al formulario y al guardado, sin tocar nada más.
+
+   No están `moderado`, `revisado_en` ni `revisado_por` a propósito: esos
+   los pone el motor y el moderador no puede escribirlos ni queriendo,
+   porque el permiso va columna por columna. El contenido se corrige; el
+   rastro de quién lo corrigió, no.
+   ===================================================================== */
+var TIPOS = {
+  reportes: {
+    clase:'t-reportes', titulo:'Residuos señalados', tabla:'reportes',
+    ruta:'/rest/v1/reportes?select=*,reportes_contacto(*)',
+    hijo:'reportes_contacto', tablaHijo:'reportes_contacto', fk:'reporte_id',
+    campos:[
+      {k:'departamento', et:'Departamento', ops:DEPARTAMENTOS},
+      {k:'municipio',    et:'Municipio'},
+      {k:'referencia',   et:'Punto de referencia', area:true},
+      {k:'tipo_residuo', et:'Tipo de residuo', ops:TIPOS_RESIDUO},
+      {k:'volumen',      et:'Volumen', ops:VOLUMENES, vacio:true},
+      {k:'riesgo_sanitario', et:'Riesgo sanitario', ops:SINO},
+      {k:'necesita_gestor',  et:'Requiere gestor autorizado', bool:true},
+      {k:'lat', et:'Latitud',  num:true},
+      {k:'lon', et:'Longitud', num:true},
+      {k:'notas',    et:'Notas de quien reporta', area:true},
+      {k:'foto_url', et:'Dirección de la foto'},
+      {k:'estado',   et:'Estado del reporte', ops:ESTADOS}
+    ],
+    camposHijo:[
+      {k:'quien_reporta', et:'Quién reporta'},
+      {k:'whatsapp',      et:'WhatsApp'},
+      {k:'publicar_contacto', et:'Autorizó publicar su contacto', bool:true}
+    ]
+  },
+  voluntarios: {
+    clase:'t-voluntarios', titulo:'Quién coordina', tabla:'voluntarios',
+    ruta:'/rest/v1/voluntarios?select=*,voluntarios_contacto(*)',
+    hijo:'voluntarios_contacto', tablaHijo:'voluntarios_contacto', fk:'voluntario_id',
+    campos:[
+      {k:'organizacion',   et:'Organización'},
+      {k:'departamento',   et:'Departamento', ops:DEPARTAMENTOS},
+      {k:'municipio',      et:'Municipio'},
+      {k:'zona',           et:'Zona que cubre', area:true},
+      {k:'rol',            et:'Rol', ops:ROLES},
+      {k:'disponibilidad', et:'Disponibilidad', ops:DISPONIBILIDADES, vacio:true},
+      {k:'tiene_vehiculo', et:'Tiene vehículo', ops:SINO, vacio:true},
+      {k:'verificacion',   et:'Verificación', ops:VERIFICACIONES},
+      {k:'notas',          et:'Notas de la moderación', area:true}
+    ],
+    camposHijo:[
+      {k:'nombre',   et:'Nombre'},
+      {k:'whatsapp', et:'WhatsApp'},
+      {k:'correo',   et:'Correo'},
+      {k:'enlace_verificacion', et:'Enlace de verificación'},
+      {k:'publicar_contacto',   et:'Autorizó publicar su contacto', bool:true}
+    ]
+  },
+  puntos: {
+    clase:'t-puntos', titulo:'Dónde llevarlo', tabla:'puntos_acopio',
+    ruta:'/rest/v1/puntos_acopio?select=*',
+    campos:[
+      {k:'nombre',       et:'Nombre del punto'},
+      {k:'tipo',         et:'Tipo de gestor', ops:TIPOS_GESTOR},
+      {k:'departamento', et:'Departamento', ops:DEPARTAMENTOS},
+      {k:'municipio',    et:'Municipio'},
+      {k:'direccion',    et:'Dirección'},
+      {k:'lat', et:'Latitud',  num:true},
+      {k:'lon', et:'Longitud', num:true},
+      {k:'materiales_si', et:'Qué recibe', area:true},
+      {k:'materiales_no', et:'Qué no recibe', area:true},
+      {k:'horario',       et:'Horario'},
+      {k:'recoge_domicilio', et:'Recoge a domicilio', ops:SINO, vacio:true},
+      {k:'persona_contacto', et:'Persona de contacto'},
+      {k:'telefono',         et:'Teléfono'},
+      {k:'como_llega_material', et:'Cómo debe llegar el material', area:true},
+      {k:'confirmado_por_llamada', et:'Confirmado por llamada', bool:true},
+      {k:'verificacion', et:'Verificación', ops:VERIFICACIONES},
+      {k:'notas',        et:'Notas de la moderación', area:true}
+    ]
+  }
+};
+
+/* ---------- los cuatro estados ---------- */
+function estadoDe(f){
+  if (f.eliminado)                 return { n:3, texto:'Moderado y eliminado',   pill:'pill-danger' };
+  if (f.publicado && !f.moderado)  return { n:1, texto:'No moderado y publicado', pill:'pill-warn'  };
+  if (f.publicado && f.moderado)   return { n:2, texto:'Moderado y publicado',    pill:'pill-ok'    };
+  return { n:4, texto:'En espera de moderación', pill:'' };
+}
+
+var FILTROS = {
+  sin_revisar:            '&moderado=is.false&eliminado=is.false',
+  no_moderado_publicado:  '&publicado=is.true&moderado=is.false&eliminado=is.false',
+  moderado_publicado:     '&publicado=is.true&moderado=is.true&eliminado=is.false',
+  moderado_eliminado:     '&eliminado=is.true',
+  en_espera:              '&publicado=is.false&moderado=is.false&eliminado=is.false',
+  todos:                  ''
+};
+
+/* ---------- publicar automáticamente ---------- */
+function cargarAjuste(){
+  api('/rest/v1/ajustes?select=*&clave=eq.autopublicar')
+    .then(function(filas){ pintarAjuste(filas && filas[0]); })
+    .catch(function(){ document.getElementById('caja-auto').innerHTML = ''; });
+}
+
+function pintarAjuste(a){
+  if (!a) { document.getElementById('caja-auto').innerHTML = ''; return; }
+  var encendido = a.valor === true;
+  document.getElementById('caja-auto').innerHTML =
+    '<div class="note ' + (encendido ? 'note-warn' : 'note-plain') + '" style="margin-bottom:1rem">' +
+      '<h3>Publicación automática: ' + (encendido ? 'encendida' : 'apagada') + '</h3>' +
+      '<p style="margin:0">' + (encendido
+        ? 'Todo lo que entra sale publicado en el momento, <strong>sin que nadie lo mire</strong>. ' +
+          'Eso incluye el teléfono de quien marcó la casilla de autorización.'
+        : 'Nada sale publicado hasta que alguien lo revisa aquí.') + '</p>' +
+      (a.cambiado_por ? '<p class="fine" style="margin:0">Lo cambió ' + esc(a.cambiado_por) + '</p>' : '') +
+      '<div class="acciones" style="border:none; padding:0; margin-top:.3rem">' +
+        '<button class="btn' + (encendido ? '' : ' btn-ok') + '" onclick="cambiarAjuste(' + (!encendido) + ')">' +
+          (encendido ? 'Apagarla: revisar antes de publicar' : 'Encenderla: publicar todo al momento') +
+        '</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function cambiarAjuste(valor){
+  if (valor && !confirm('Con esto encendido, lo que envíe cualquiera sale publicado sin que nadie lo revise, incluidos los teléfonos que se autoricen a publicar.\n\n¿Encenderla?')) return;
+  api('/rest/v1/ajustes?clave=eq.autopublicar', {
+    method:'PATCH',
+    headers:{ 'Content-Type':'application/json', 'Prefer':'return=representation' },
+    body: JSON.stringify({ valor: valor })
+  }).then(function(filas){ pintarAjuste(filas && filas[0]); })
+    .catch(function(err){ alert('No se pudo cambiar: ' + err.message); });
+}
+
+/* ---------- pestañas y carga ---------- */
 function verPestana(cual){
   pestana = cual;
+  editando = null;
   ['reportes','voluntarios','puntos'].forEach(function(p){
     document.getElementById('tab-' + p).setAttribute('aria-selected', p === cual ? 'true' : 'false');
   });
+  var cinta = document.getElementById('cinta');
+  cinta.className = 'cinta ' + TIPOS[cual].clase;
+  cinta.textContent = TIPOS[cual].titulo;
   cargar();
 }
-
-function filtros(){
-  var q = '';
-  var f = document.getElementById('f-estado').value;
-  if (f === 'pendientes') q += '&publicado=is.false';
-  if (f === 'publicados') q += '&publicado=is.true';
-  var d = document.getElementById('f-dep').value;
-  if (d) q += '&departamento=eq.' + encodeURIComponent(d);
-  return q;
-}
-
-var RUTAS = {
-  reportes:    '/rest/v1/reportes?select=*,reportes_contacto(*)',
-  voluntarios: '/rest/v1/voluntarios?select=*,voluntarios_contacto(*)',
-  puntos:      '/rest/v1/puntos_acopio?select=*'
-};
 
 function cargar(){
   var caja = document.getElementById('lista');
   caja.innerHTML = '<p class="cargando">Cargando…</p>';
-  var cual = pestana;
+  var cual = pestana, t = TIPOS[cual];
 
-  api(RUTAS[cual] + '&order=creado_en.desc&limit=200' + filtros())
-    .then(function(filas){
-      if (cual !== pestana) return;              // se cambió de pestaña mientras tanto
-      document.getElementById('n-' + cual).textContent = filas.length;
-      if (!filas.length) {
-        caja.innerHTML = '<div class="vacio">No hay nada aquí con estos filtros.</div>';
-        return;
-      }
-      caja.innerHTML = filas.map(
-        cual === 'reportes' ? fichaReporte :
-        cual === 'voluntarios' ? fichaVoluntario : fichaPunto
-      ).join('');
-    })
-    .catch(function(err){
-      if (err.message === 'sesion') { borrarSesion(); location.reload(); return; }
-      caja.innerHTML = '<div class="note note-danger"><h3>No se pudo cargar</h3>' +
-        '<p style="margin:0">' + esc(err.message).slice(0,200) + '</p></div>';
-    });
+  var q = t.ruta + '&order=creado_en.desc&limit=200' +
+          (FILTROS[document.getElementById('f-estado').value] || '');
+  var d = document.getElementById('f-dep').value;
+  if (d) q += '&departamento=eq.' + encodeURIComponent(d);
+
+  api(q).then(function(filas){
+    if (cual !== pestana) return;
+    document.getElementById('n-' + cual).textContent = filas.length;
+    if (!filas.length) {
+      caja.innerHTML = '<div class="vacio">No hay nada aquí con estos filtros.</div>';
+      return;
+    }
+    caja.innerHTML = filas.map(function(f){ return ficha(cual, f); }).join('');
+  }).catch(function(err){
+    if (err.message === 'sesion') { borrarSesion(); location.reload(); return; }
+    caja.innerHTML = '<div class="note note-danger"><h3>No se pudo cargar</h3>' +
+      '<p style="margin:0">' + esc(err.message).slice(0,200) + '</p></div>';
+  });
 }
 
 function fecha(t){
@@ -412,121 +572,169 @@ function fecha(t){
     { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
-function fila(et, valor){
-  if (valor === null || valor === undefined || valor === '') return '';
-  return '<dt>' + esc(et) + '</dt><dd>' + esc(valor) + '</dd>';
+/* ---------- una ficha, en modo lectura ---------- */
+function valorLegible(f, c){
+  var v = f[c.k];
+  if (v === null || v === undefined || v === '') return null;
+  if (c.bool) return v ? 'Sí' : 'No';
+  return v;
 }
 
-function botones(tabla, id, publicado, extra){
-  return '<div class="acciones">' +
-    (publicado
-      ? '<button class="btn" onclick="publicar(\'' + tabla + '\',\'' + id + '\',false)">Quitar de lo público</button>'
-      : '<button class="btn btn-ok" onclick="publicar(\'' + tabla + '\',\'' + id + '\',true)">Publicar</button>') +
-    (extra || '') +
-    '</div>';
-}
+function ficha(cual, f){
+  var t = TIPOS[cual];
+  var hijo = (t.hijo && f[t.hijo]) ? f[t.hijo] : {};
+  var e = estadoDe(f);
 
-function selector(tabla, id, campo, opciones, actual){
-  return '<select class="btn" onchange="cambiar(\'' + tabla + '\',\'' + id + '\',\'' + campo + '\',this.value)">' +
-    opciones.map(function(o){
-      return '<option' + (o === actual ? ' selected' : '') + '>' + esc(o) + '</option>';
-    }).join('') + '</select>';
-}
+  if (editando === f.id) return formulario(cual, f, hijo);
 
-function fichaReporte(r){
-  var c = r.reportes_contacto || {};
-  var peligroso = PELIGROSOS.indexOf(r.tipo_residuo) > -1;
-  var clase = r.publicado ? 'publicada' : (peligroso ? 'peligro' : 'pendiente');
-  var mapa = (r.lat && r.lon)
-    ? '<a href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '" target="_blank" rel="noopener">'
-      + r.lat.toFixed(5) + ', ' + r.lon.toFixed(5) + '</a>'
-      + (r.precision_m ? ' <span class="fine">±' + r.precision_m + ' m</span>' : '')
-    : '<span class="fine">sin GPS</span>';
+  var titulo, subtitulo;
+  if (cual === 'reportes')          { titulo = f.municipio + ', ' + f.departamento; subtitulo = f.tipo_residuo; }
+  else if (cual === 'voluntarios')  { titulo = hijo.nombre || 'Sin nombre';         subtitulo = f.rol; }
+  else                              { titulo = f.nombre;                            subtitulo = f.tipo; }
 
-  return '<article class="ficha ' + clase + '">' +
-    '<p class="ficha-meta">' + esc(fecha(r.creado_en)) + '</p>' +
-    '<h3>' + esc(r.municipio) + ', ' + esc(r.departamento) + '</h3>' +
+  var peligroso = cual === 'reportes' && PELIGROSOS.indexOf(f.tipo_residuo) > -1;
+
+  var filas = t.campos.map(function(c){
+    var v = valorLegible(f, c);
+    return v === null ? '' : '<dt>' + esc(c.et) + '</dt><dd>' + esc(v) + '</dd>';
+  }).join('');
+  if (t.camposHijo) {
+    filas += t.camposHijo.map(function(c){
+      var v = valorLegible(hijo, c);
+      return v === null ? '' : '<dt>' + esc(c.et) + '</dt><dd>' + esc(v) + '</dd>';
+    }).join('');
+  }
+  if (f.lat && f.lon) {
+    filas += '<dt>En el mapa</dt><dd><a href="https://www.google.com/maps?q=' +
+      f.lat + ',' + f.lon + '" target="_blank" rel="noopener">abrir</a></dd>';
+  }
+  if (f.revisado_por)   filas += '<dt>Revisado por</dt><dd>' + esc(f.revisado_por) + '</dd>';
+  if (f.verificado_por) filas += '<dt>Verificado por</dt><dd>' + esc(f.verificado_por) + '</dd>';
+
+  return '<article class="ficha ' + t.clase + (peligroso ? ' peligro' : '') + '">' +
+    '<p class="ficha-meta">' + esc(fecha(f.creado_en)) + '</p>' +
+    '<h3>' + esc(titulo) + '</h3>' +
     '<p style="margin:.2rem 0 .5rem">' +
-      '<span class="pill' + (peligroso ? ' pill-danger' : '') + '">' + esc(r.tipo_residuo) + '</span> ' +
-      '<span class="pill">' + esc(r.estado) + '</span> ' +
-      (r.publicado ? '<span class="pill pill-ok">Publicado</span>'
-                   : '<span class="pill pill-warn">Sin revisar</span>') +
+      '<span class="pill ' + (peligroso ? 'pill-danger' : 'pill-tipo') + '">' + esc(subtitulo) + '</span> ' +
+      '<span class="pill ' + e.pill + '">' + e.n + ' · ' + esc(e.texto) + '</span>' +
     '</p>' +
     (peligroso ? '<div class="note note-danger" style="margin:.5rem 0"><h3>No lo mueven voluntarios</h3>' +
       '<p style="margin:0">Requiere gestor autorizado.</p></div>' : '') +
-    '<dl>' +
-      fila('Referencia', r.referencia) +
-      '<dt>Ubicación</dt><dd>' + mapa + '</dd>' +
-      fila('Volumen', r.volumen) +
-      fila('Riesgo sanitario', r.riesgo_sanitario) +
-      fila('Notas de quien reporta', r.notas) +
-      fila('Reporta', c.quien_reporta) +
-      fila('WhatsApp', c.whatsapp) +
-      '<dt>¿Autorizó publicar su contacto?</dt><dd>' + (c.publicar_contacto ? 'Sí' : 'No') + '</dd>' +
-      fila('Revisado por', r.revisado_por) +
-    '</dl>' +
-    (r.foto_url ? '<img src="' + esc(r.foto_url) + '" alt="Foto del punto reportado" loading="lazy">' : '') +
-    botones('reportes', r.id, r.publicado,
-            selector('reportes', r.id, 'estado', ESTADOS, r.estado)) +
+    '<dl>' + filas + '</dl>' +
+    (f.foto_url ? '<img src="' + esc(f.foto_url) + '" alt="Foto del punto reportado" loading="lazy">' : '') +
+    acciones(cual, f) +
     '</article>';
 }
 
-function fichaVoluntario(v){
-  var c = v.voluntarios_contacto || {};
-  return '<article class="ficha ' + (v.publicado ? 'publicada' : 'pendiente') + '">' +
-    '<p class="ficha-meta">' + esc(fecha(v.creado_en)) + '</p>' +
-    '<h3>' + esc(c.nombre || 'Sin nombre') + '</h3>' +
-    '<p style="margin:.2rem 0 .5rem">' +
-      '<span class="pill">' + esc(v.rol) + '</span> ' +
-      '<span class="pill">' + esc(v.municipio) + ', ' + esc(v.departamento) + '</span> ' +
-      (v.publicado ? '<span class="pill pill-ok">Publicado</span>'
-                   : '<span class="pill pill-warn">Sin revisar</span>') +
-    '</p>' +
-    '<dl>' +
-      fila('Organización', v.organizacion) +
-      fila('Zona que cubre', v.zona) +
-      fila('Disponibilidad', v.disponibilidad) +
-      fila('Vehículo', v.tiene_vehiculo) +
-      fila('WhatsApp', c.whatsapp) +
-      fila('Correo', c.correo) +
-      fila('Enlace de verificación', c.enlace_verificacion) +
-      '<dt>¿Autorizó publicar su contacto?</dt><dd>' +
-        (c.publicar_contacto ? 'Sí' : 'No — no aparecerá en el directorio aunque se publique') + '</dd>' +
-      fila('Verificado por', v.verificado_por) +
-    '</dl>' +
-    botones('voluntarios', v.id, v.publicado,
-            selector('voluntarios', v.id, 'verificacion', VERIFICACIONES, v.verificacion)) +
+function acciones(cual, f){
+  var id = "'" + cual + "','" + f.id + "'";
+  var b = '<div class="acciones">';
+  if (f.eliminado) {
+    b += '<button class="btn btn-ok" onclick="retirar(' + id + ',false)">Restaurar</button>';
+  } else {
+    b += f.publicado
+      ? '<button class="btn" onclick="publicar(' + id + ',false)">Quitar de lo público</button>'
+      : '<button class="btn btn-ok" onclick="publicar(' + id + ',true)">Publicar</button>';
+    b += '<button class="btn" onclick="editar(' + id + ')">Modificar</button>';
+    b += '<button class="btn" onclick="retirar(' + id + ',true)">Eliminar</button>';
+  }
+  b += '<button class="btn btn-danger" onclick="borrar(' + id + ')">Borrar definitivamente</button>';
+  return b + '</div>';
+}
+
+/* ---------- una ficha, en modo edición ---------- */
+function control(prefijo, c, valor){
+  var id = prefijo + '-' + c.k;
+  var v = (valor === null || valor === undefined) ? '' : valor;
+  var campo;
+  if (c.bool) {
+    return '<div class="check"><input type="checkbox" id="' + id + '"' + (valor ? ' checked' : '') + '>' +
+           '<label for="' + id + '">' + esc(c.et) + '</label></div>';
+  }
+  if (c.ops) {
+    campo = '<select id="' + id + '">' +
+      (c.vacio ? '<option value=""></option>' : '') +
+      c.ops.map(function(o){
+        return '<option' + (o === v ? ' selected' : '') + '>' + esc(o) + '</option>';
+      }).join('') + '</select>';
+  } else if (c.area) {
+    campo = '<textarea id="' + id + '">' + esc(v) + '</textarea>';
+  } else {
+    campo = '<input type="' + (c.num ? 'text' : 'text') + '" id="' + id + '" value="' + esc(v) + '"' +
+            (c.num ? ' inputmode="decimal"' : '') + '>';
+  }
+  return '<div class="field"><label for="' + id + '">' + esc(c.et) + '</label>' + campo + '</div>';
+}
+
+function formulario(cual, f, hijo){
+  var t = TIPOS[cual];
+  var cuerpo = t.campos.map(function(c){ return control('e', c, f[c.k]); }).join('');
+  if (t.camposHijo) {
+    cuerpo += '<p class="eyebrow" style="margin-top:.6rem">Datos de contacto</p>' +
+      t.camposHijo.map(function(c){ return control('h', c, hijo[c.k]); }).join('');
+  }
+  return '<article class="ficha ' + t.clase + '">' +
+    '<p class="ficha-meta">Modificando · ' + esc(fecha(f.creado_en)) + '</p>' +
+    '<div class="note note-plain" style="margin:.4rem 0 .8rem"><h3>Queda registrado</h3>' +
+    '<p style="margin:0">Al guardar, la fila queda marcada como moderada y se apunta ' +
+    'su correo y la hora. Eso lo pone la base de datos, no esta pantalla.</p></div>' +
+    '<form onsubmit="return guardar(event,\'' + cual + '\',\'' + f.id + '\')">' +
+      cuerpo +
+      '<div class="acciones">' +
+        '<button type="submit" class="btn btn-ok">Guardar cambios</button>' +
+        '<button type="button" class="btn" onclick="editando=null;cargar()">Cancelar</button>' +
+      '</div>' +
+    '</form>' +
     '</article>';
 }
 
-function fichaPunto(p){
-  var mapa = (p.lat && p.lon)
-    ? '<a href="https://www.google.com/maps?q=' + p.lat + ',' + p.lon + '" target="_blank" rel="noopener">ver en el mapa</a>'
-    : '';
-  return '<article class="ficha ' + (p.publicado ? 'publicada' : 'pendiente') + '">' +
-    '<p class="ficha-meta">' + esc(fecha(p.creado_en)) + '</p>' +
-    '<h3>' + esc(p.nombre) + '</h3>' +
-    '<p style="margin:.2rem 0 .5rem">' +
-      '<span class="pill">' + esc(p.tipo) + '</span> ' +
-      '<span class="pill">' + esc(p.municipio) + ', ' + esc(p.departamento) + '</span> ' +
-      (p.confirmado_por_llamada ? '<span class="pill pill-ok">Dice haber llamado</span>'
-                                : '<span class="pill pill-warn">Sin confirmar por llamada</span>') +
-    '</p>' +
-    '<dl>' +
-      fila('Dirección', p.direccion) +
-      (mapa ? '<dt>Mapa</dt><dd>' + mapa + '</dd>' : '') +
-      fila('Recibe', p.materiales_si) +
-      fila('No recibe', p.materiales_no) +
-      fila('Horario', p.horario) +
-      fila('Recoge a domicilio', p.recoge_domicilio) +
-      fila('Contacto', p.persona_contacto) +
-      fila('Teléfono', p.telefono) +
-      fila('Cómo debe llegar el material', p.como_llega_material) +
-      fila('Última verificación', p.fecha_verificacion) +
-    '</dl>' +
-    botones('puntos_acopio', p.id, p.publicado,
-            selector('puntos_acopio', p.id, 'verificacion', VERIFICACIONES, p.verificacion)) +
-    '</article>';
+function editar(cual, id){ editando = id; cargar(); }
+
+function leerControl(prefijo, c){
+  var el = document.getElementById(prefijo + '-' + c.k);
+  if (!el) return undefined;
+  if (c.bool) return el.checked;
+  var v = el.value.trim();
+  if (v === '') return null;
+  if (c.num) { var n = parseFloat(v.replace(',', '.')); return isNaN(n) ? null : n; }
+  return v;
+}
+
+function guardar(ev, cual, id){
+  ev.preventDefault();
+  var t = TIPOS[cual];
+  var boton = ev.target.querySelector('button[type=submit]');
+  boton.disabled = true; boton.textContent = 'Guardando…';
+
+  var principal = {};
+  t.campos.forEach(function(c){
+    var v = leerControl('e', c);
+    if (v !== undefined) principal[c.k] = v;
+  });
+
+  var paso = escribir(t.tabla, id, principal);
+
+  if (t.camposHijo) {
+    var contacto = {};
+    t.camposHijo.forEach(function(c){
+      var v = leerControl('h', c);
+      if (v !== undefined) contacto[c.k] = v;
+    });
+    paso = paso.then(function(){
+      return api('/rest/v1/' + t.tablaHijo + '?' + t.fk + '=eq.' + encodeURIComponent(id), {
+        method:'PATCH',
+        headers:{ 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+        body: JSON.stringify(contacto)
+      });
+    });
+  }
+
+  paso.then(function(){ editando = null; cargar(); })
+      .catch(function(err){
+        boton.disabled = false; boton.textContent = 'Guardar cambios';
+        alert('No se pudo guardar:\n\n' + err.message);
+      });
+  return false;
 }
 
 /* ---------- escribir ---------- */
@@ -538,18 +746,27 @@ function escribir(tabla, id, cambio){
   });
 }
 
-function publicar(tabla, id, valor){
-  if (valor === false && !confirm('¿Quitar esto de lo que ve el público?')) return;
-  escribir(tabla, id, { publicado: valor })
-    .then(cargar)
-    .catch(function(err){ alert('No se pudo guardar: ' + err.message); });
+function publicar(cual, id, valor){
+  if (!valor && !confirm('¿Quitar esto de lo que ve el público?')) return;
+  escribir(TIPOS[cual].tabla, id, { publicado: valor })
+    .then(cargar).catch(function(err){ alert('No se pudo guardar: ' + err.message); });
 }
 
-function cambiar(tabla, id, campo, valor){
-  var cambio = {};
-  cambio[campo] = valor;
-  escribir(tabla, id, cambio)
-    .catch(function(err){ alert('No se pudo guardar: ' + err.message); cargar(); });
+/* Eliminar es retirar: la fila se queda para poder deshacerlo. */
+function retirar(cual, id, valor){
+  if (valor && !confirm('Se retira de todo lo público y queda marcado como eliminado.\n\nLa fila sigue en la base y se puede restaurar. ¿Continuar?')) return;
+  escribir(TIPOS[cual].tabla, id, valor ? { eliminado:true, publicado:false } : { eliminado:false })
+    .then(cargar).catch(function(err){ alert('No se pudo guardar: ' + err.message); });
+}
+
+/* Borrar sí es borrar: no hay deshacer, y con él se van los datos de contacto. */
+function borrar(cual, id){
+  if (!confirm('BORRADO DEFINITIVO\n\nLa fila y sus datos de contacto desaparecen de la base de datos. Esto no se puede deshacer.\n\n¿Seguro?')) return;
+  if (!confirm('Última confirmación: no hay vuelta atrás.')) return;
+  api('/rest/v1/' + TIPOS[cual].tabla + '?id=eq.' + encodeURIComponent(id), {
+    method:'DELETE',
+    headers:{ 'Prefer':'return=minimal' }
+  }).then(cargar).catch(function(err){ alert('No se pudo borrar: ' + err.message); });
 }
 
 arrancar();

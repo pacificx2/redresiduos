@@ -13,6 +13,11 @@ Los tres formularios escriben en la base de datos (Supabase). Existen ya la
 pantalla de moderación, el aviso de tratamiento de datos y el directorio
 público, y hay un límite de envíos por hora que frena el ruido.
 
+**La publicación automática está encendida**: lo que se envía sale publicado en
+el momento y la revisión es posterior. Se apaga desde la pantalla de moderación
+con un botón, sin tocar SQL. El aviso de datos lo dice tal cual, porque es lo
+contrario de lo que prometía el diseño original.
+
 Antes de difundir el enlace queda pendiente lo de la lista de abajo, que ya
 no bloquea la publicación: el sitio se puede visitar, los formularios escriben,
 el aviso de datos está completo y la moderación funciona.
@@ -63,6 +68,12 @@ Las listas desplegables son exactamente las de la hoja `Listas`.
 - **Bloqueo de seguridad automático**: si el tipo de residuo es RAEE, peligrosos o
   escombros, la interfaz advierte que no lo mueven voluntarios.
 - **Consentimiento explícito** para publicar cualquier contacto (Ley 1581 de 2012).
+- **Un color por tipo de señalización**, el mismo en el formulario, en el
+  directorio y en la moderación: ámbar para los residuos señalados, violeta
+  para quien coordina, azul para los puntos donde llevar el material.
+- **Publicar, moderar y eliminar son tres cosas distintas** y se guardan en tres
+  columnas separadas, porque son tres preguntas distintas: si se ve, si alguien
+  lo miró, y si un moderador lo retiró.
 - El aporte al directorio exige confirmar que se llamó al punto antes de proponerlo.
 - **Blanco, azul y pasteles**, con todo el texto por encima del mínimo de
   contraste de la norma (4,5:1, y 3:1 en titulares grandes) en modo claro y
@@ -101,7 +112,12 @@ node pruebas/navegador.mjs
 2. **Ver a alguien del equipo usar la moderación.** Sólo la ha usado quien la
    escribió; eso no es lo mismo que saber que se entiende.
 3. Que la página abra sin señal (aún hace falta conexión para cargarla).
-4. Que la moderación pueda borrar una fila, y no sólo dejar de publicarla.
+4. Un punto de acopio no tiene forma de guardar su ubicación: el formulario no
+   pide GPS y la función de inserción no acepta `lat`/`lon`. El directorio
+   intenta pintar un enlace al mapa que nunca puede aparecer.
+5. La casilla "autorizo publicar mi contacto" del formulario de reportes no
+   hace nada: la vista pública de reportes no expone el contacto en ningún
+   caso. O se cumple la promesa, o se quita la casilla.
 
 Y hay que atender de verdad `contacto@reciclamores.org`, porque el aviso de
 datos promete por escrito que ahí se responde en diez días hábiles.

@@ -37,8 +37,11 @@
   <p class="eyebrow">Ley 1581 de 2012</p>
   <h1>Qué hacemos con sus datos</h1>
   <p class="lede">En resumen: guardamos su teléfono para poder coordinar la
-  recogida. No se publica salvo que usted marque la casilla. Puede pedir que
-  lo borremos cuando quiera y no hay que dar explicaciones.</p>
+  recogida, y sólo se publica si usted marca la casilla. Puede pedir que lo
+  borremos cuando quiera y no hay que dar explicaciones.</p>
+  <p class="lede"><strong>Lo que envíe aparece en el sitio de inmediato</strong>,
+  antes de que nadie lo revise. Lea la sección 4: es lo más importante de esta
+  página.</p>
 </div>
 
 <div id="incompleto"></div>
@@ -134,18 +137,33 @@ para hacerle llegar mensajes ajenos a la emergencia.</p>
 <p>Su nombre y su teléfono viven en una tabla aparte del resto, y de forma
 predeterminada <strong>nadie del público puede leerla</strong>. Eso no depende
 de la disciplina de quien administra: lo impide el motor de la base de datos.</p>
+<div class="note note-warn">
+  <h3>La revisión es posterior, no previa</h3>
+  <p style="margin:0">Durante la emergencia, lo que se envía se publica en el
+  momento, <strong>sin que nadie lo haya mirado antes</strong>. El equipo lo
+  revisa después y retira lo que no deba estar. Se hace así porque un punto de
+  acumulación que tarda dos días en aparecer ya no le sirve a nadie, pero
+  significa que <strong>usted debe dar por hecho que lo que escriba será
+  público desde el primer momento</strong>.</p>
+</div>
 <dl>
   <dt>El equipo de moderación</dt>
   <dd>Un grupo corto de personas dadas de alta expresamente. Ven los teléfonos
-  para poder llamar y coordinar.</dd>
+  para poder llamar y coordinar, incluidos los de quien no autorizó publicarlos.</dd>
   <dt>El público</dt>
-  <dd>Sólo ve lo que un moderador revisó <em>y</em> marcó como publicable. De
-  los voluntarios, además, sólo aparece quien marcó la casilla de autorización.
-  Si no la marcó, su contacto no se publica aunque su inscripción sí se use
-  para coordinar.</dd>
+  <dd>De los voluntarios y de los puntos de acopio ve el contacto de quien marcó
+  la casilla de autorización. Si no la marcó, su contacto no se publica, aunque
+  su inscripción sí se use para coordinar.</dd>
+  <dt>De un reporte de residuos</dt>
+  <dd>El público ve el lugar, el tipo de residuo y la foto, pero <strong>nunca</strong>
+  el nombre ni el teléfono de quien lo reportó. Esos viven en una tabla aparte que
+  ninguna consulta pública alcanza.</dd>
 </dl>
-<p>Las fotos de los reportes sí son públicas una vez revisadas: por eso conviene
+<p>Las fotos de los reportes son públicas desde que se envían: por eso conviene
 no fotografiar caras, placas ni documentos.</p>
+<p>Si algo suyo aparece publicado y no quiere que esté, escriba por cualquiera de
+los dos canales de la <a href="#responsable">sección 1</a> y se retira. No hace
+falta esperar a la revisión.</p>
 
 <h2 id="donde">5 · Dónde se guarda</h2>
 <p>En una base de datos PostgreSQL alojada en <strong>Supabase</strong>, que

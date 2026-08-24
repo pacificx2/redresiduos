@@ -39,6 +39,14 @@
   --warn:#74490A;   --warn-bg:#FBF1DE;
   --ok:#0C6543;     --ok-bg:#E2F3EB;
   --focus:#0A5794;
+
+  /* UN COLOR POR TIPO. El mismo en el formulario, en el directorio y en la
+     moderación: si un reporte es ámbar en un sitio, es ámbar en los tres.
+     `--t-*-ink` es el texto que va sobre `--t-*-bg`, no sobre el papel. */
+  --t-rep:#A04600; --t-rep-bg:#FCEADA; --t-rep-ink:#7A3500;
+  --t-vol:#6A3CA0; --t-vol-bg:#EEE7FA; --t-vol-ink:#4E2A79;
+  --t-pun:#0A5794; --t-pun-bg:#DEEBF8; --t-pun-ink:#083A5F;
+
   --r:10px; --maxw:44rem;
 }
 
@@ -55,6 +63,9 @@
     --warn:#F2C273;   --warn-bg:#33250B;
     --ok:#84D8AB;     --ok-bg:#0B2A1C;
     --focus:#7BC3F1;
+    --t-rep:#F2A96A; --t-rep-bg:#33200C; --t-rep-ink:#F7C79A;
+    --t-vol:#C6A8F2; --t-vol-bg:#251A38; --t-vol-ink:#D8C3F7;
+    --t-pun:#7BC3F1; --t-pun-bg:#0E2637; --t-pun-ink:#A9D8F6;
     --r:10px; --maxw:44rem;
   }
 }
@@ -71,6 +82,9 @@
   --warn:#F2C273;   --warn-bg:#33250B;
   --ok:#84D8AB;     --ok-bg:#0B2A1C;
   --focus:#7BC3F1;
+  --t-rep:#F2A96A; --t-rep-bg:#33200C; --t-rep-ink:#F7C79A;
+  --t-vol:#C6A8F2; --t-vol-bg:#251A38; --t-vol-ink:#D8C3F7;
+  --t-pun:#7BC3F1; --t-pun-bg:#0E2637; --t-pun-ink:#A9D8F6;
   --r:10px; --maxw:44rem;
 }
 
@@ -343,3 +357,43 @@ tr:last-child th,tr:last-child td{border-bottom:none}
 }
 .sesion .quien{font-family:"IBM Plex Mono",monospace; color:var(--ink-2)}
 .sesion button{margin-left:auto}
+
+
+/* =====================================================================
+   TIPOS DE SEÑALIZACIÓN
+   Una clase pone el color del tipo en tres variables locales, y de ahí lo
+   leen la tarjeta, la ficha y la pestaña. Así el color vive en un sitio y
+   no hay que acordarse de cambiarlo en tres archivos.
+   ===================================================================== */
+.t-reportes    { --t:var(--t-rep); --t-bg:var(--t-rep-bg); --t-ink:var(--t-rep-ink); }
+.t-voluntarios { --t:var(--t-vol); --t-bg:var(--t-vol-bg); --t-ink:var(--t-vol-ink); }
+.t-puntos      { --t:var(--t-pun); --t-bg:var(--t-pun-bg); --t-ink:var(--t-pun-ink); }
+
+/* La tarjeta de la portada: barra de color a la izquierda y número en el
+   color del tipo, para que las tres se distingan de un vistazo. */
+.card{border-left-color:var(--t, var(--deep))}
+.card:hover{border-left-color:var(--t, var(--deep))}
+.card-n{
+  color:var(--t-ink, var(--deep)); background:var(--t-bg, var(--surface-2));
+  border-radius:6px; padding:.15rem .4rem; align-self:flex-start;
+}
+
+/* Cabecera de cada formulario y de cada pantalla del directorio. */
+.cinta{
+  display:inline-flex; align-items:center; gap:.45rem;
+  background:var(--t-bg, var(--surface-2)); color:var(--t-ink, var(--ink-2));
+  border:1px solid var(--t, var(--line-strong));
+  border-radius:99px; padding:.25rem .7rem; margin-bottom:.6rem;
+  font-family:"IBM Plex Mono",monospace; font-size:.68rem;
+  letter-spacing:.1em; text-transform:uppercase; font-weight:500;
+}
+
+/* Ficha: el borde izquierdo dice de qué tipo es. */
+.ficha{border-left-color:var(--t, var(--line-strong))}
+
+/* Pestaña activa: subrayada en el color de su tipo. */
+.tab[aria-selected="true"]{border-bottom-color:var(--t, var(--hivis))}
+.tab[aria-selected="true"] .n{background:var(--t-bg, var(--surface-2)); color:var(--t-ink, var(--ink-2))}
+
+/* Etiqueta con el color del tipo. */
+.pill-tipo{background:var(--t-bg); border-color:var(--t); color:var(--t-ink)}
