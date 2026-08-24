@@ -269,11 +269,28 @@ const navegador = await chromium.launch();
   // El detector tiene que distinguir "falta el dato" de "el dato no sirve".
   comprobar('no dice que falten datos, porque ya están',
     !(await p.textContent('#incompleto')).includes('todavía no está completo'));
-  comprobar('avisa de que el correo está en un dominio local',
-    (await p.textContent('#incompleto')).includes('no recibe desde internet'));
+  comprobar('el correo de contacto es un dominio real',
+    (await p.textContent('#correo-datos')).includes('@reciclamores.org'));
+  // El detector de dominios locales sigue ahí; lo que se comprueba es que
+  // con un dominio real no salta. Que sí salte se comprueba abajo.
+  comprobar('no queda ningún aviso rojo pendiente',
+    (await p.textContent('#incompleto')).trim() === '');
   comprobar('no desborda a lo ancho',
     !(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
   comprobar('sin errores de JS', errs.length === 0);
+
+  /* El detector de correos inservibles no debe quedarse muerto por el hecho
+     de que hoy el dato sea correcto: se le vuelve a poner un dominio local
+     en caliente y tiene que saltar. */
+  const salta = await p.evaluate(() => {
+    document.getElementById('correo-datos').textContent = 'contacto@ejemplo.local';
+    document.getElementById('incompleto').innerHTML = '';
+    const s = document.createElement('script');
+    s.textContent = document.querySelector('body > script').textContent;
+    document.body.appendChild(s);
+    return document.getElementById('incompleto').textContent.includes('no recibe desde internet');
+  });
+  comprobar('el detector de dominios locales sigue vivo', salta);
   await ctx.close();
 }
 

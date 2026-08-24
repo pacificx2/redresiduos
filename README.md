@@ -13,11 +13,9 @@ Los tres formularios escriben en la base de datos (Supabase). Existen ya la
 pantalla de moderación, el aviso de tratamiento de datos y el directorio
 público, y hay un límite de envíos por hora que frena el ruido.
 
-**Todavía no difundir el enlace.** Falta lo de la lista de abajo. En
-particular, el correo de contacto del aviso de datos está en un dominio
-`.local`, que no recibe mensajes desde internet: mientras siga así, el derecho
-a reclamar que promete la página sólo se puede ejercer por WhatsApp. La propia
-página lo avisa en rojo.
+Antes de difundir el enlace queda pendiente lo de la lista de abajo, que ya
+no bloquea la publicación: el sitio se puede visitar, los formularios escriben,
+el aviso de datos está completo y la moderación funciona.
 
 ## Las páginas
 
@@ -94,14 +92,15 @@ node pruebas/navegador.mjs
 
 ## Pendiente antes de difundir
 
-1. **Un correo de contacto que reciba desde internet**, para `datos.html`,
-   sección 1. Hoy es `contacto@reciclamores-local.local`, y `.local` está
-   reservado para redes locales: nadie de fuera puede escribir ahí.
-2. **Configurar el acceso de los moderadores** en Supabase y dar de alta al
-   primero. Ver `backend/README.md`.
-3. **Definir quién actúa sobre los reportes.** No es código: sin ese acuerdo,
+1. **Definir quién actúa sobre los reportes.** No es código: sin ese acuerdo,
    la moderación publica cosas que después nadie recoge.
-4. Que la página abra sin señal (aún hace falta conexión para cargarla).
+2. **Ver a alguien del equipo usar la moderación.** Sólo la ha usado quien la
+   escribió; eso no es lo mismo que saber que se entiende.
+3. Que la página abra sin señal (aún hace falta conexión para cargarla).
+4. Que la moderación pueda borrar una fila, y no sólo dejar de publicarla.
+
+Y hay que atender de verdad `contacto@reciclamores.org`, porque el aviso de
+datos promete por escrito que ahí se responde en diez días hábiles.
 
 ## Privacidad
 
