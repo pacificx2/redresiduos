@@ -211,6 +211,133 @@ create view public.v_voluntarios_publicos as
   where v.publicado and c.publicar_contacto;
 
 -- =====================================================================
+-- LÍMITE DE ENVÍOS
+--
+-- Nada impide a nadie llenar la base de ruido, así que se cuenta por
+-- dirección IP y por hora dentro de las mismas funciones que insertan.
+-- Hacerlo en el navegador no serviría: se salta borrando los datos del sitio.
+--
+-- DECISIÓN IMPORTANTE: si no se puede averiguar la IP, el envío SE PERMITE.
+-- En una emergencia, perder un reporte real es peor que aceptar uno falso.
+-- =====================================================================
+
+-- Detrás del proxy de Supabase la conexión siempre viene de la misma
+-- máquina, así que la IP del que envía hay que leerla de las cabeceras.
+create or replace function public.ip_cliente() returns inet
+language plpgsql stable security definer set search_path = public as $$
+declare
+  cabeceras json;
+  crudo text;
+begin
+  begin
+    cabeceras := current_setting('request.headers', true)::json;
+  exception when others then
+    return null;
+  end;
+  if cabeceras is null then
+    return null;
+  end if;
+
+  crudo := coalesce(
+    cabeceras ->> 'cf-connecting-ip',
+    cabeceras ->> 'x-real-ip',
+    -- x-forwarded-for es una lista; el primero es el cliente.
+    nullif(split_part(coalesce(cabeceras ->> 'x-forwarded-for', ''), ',', 1), ''));
+
+  crudo := trim(coalesce(crudo, ''));
+  if crudo = '' then
+    return null;
+  end if;
+
+  begin
+    return crudo::inet;
+  exception when others then
+    return null;
+  end;
+end $$;
+
+-- Un contador por IP y hora. Nada más: ni qué se envió, ni desde qué
+-- formulario, ni a qué hora exacta. No es un registro de actividad.
+create table public.envios_ip (
+  ip      inet        not null,
+  ventana timestamptz not null,
+  n       integer     not null default 0,
+  primary key (ip, ventana)
+);
+
+-- No lo lee ni lo escribe nadie del público: sólo lo tocan las
+-- funciones `security definer` de aquí abajo.
+alter table public.envios_ip enable row level security;
+
+comment on table public.envios_ip is
+  'Contador anti-ruido por IP y hora. Se purga solo a los 2 días.';
+
+-- El único número que hay que tocar. Subirlo si un municipio entero
+-- comparte una conexión y llega al tope de buena fe.
+create or replace function public.limite_envios_hora() returns integer
+language sql immutable as $$ select 20 $$;
+
+create or replace function public.registrar_envio() returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  cliente inet;
+  -- Ojo con el nombre: llamarla `ventana` chocaría con la columna del
+  -- mismo nombre y el DELETE de abajo no compilaría.
+  hora_en_curso timestamptz := date_trunc('hour', now());
+  actual  integer;
+begin
+  cliente := public.ip_cliente();
+
+  -- Sin IP identificable no se bloquea a nadie. Ver la nota de arriba.
+  if cliente is null then
+    return;
+  end if;
+
+  -- La tabla no debe crecer para siempre; se limpia sola.
+  delete from public.envios_ip e where e.ventana < now() - interval '2 days';
+
+  insert into public.envios_ip as e (ip, ventana, n)
+  values (cliente, hora_en_curso, 1)
+  on conflict (ip, ventana) do update set n = e.n + 1
+  returning e.n into actual;
+
+  if actual > public.limite_envios_hora() then
+    raise exception
+      'Se alcanzó el máximo de envíos por hora desde esta conexión. Espere una hora, o avise al equipo por otra vía si es urgente.'
+      using errcode = 'P0002';
+  end if;
+end $$;
+
+-- =====================================================================
+-- QUIÉN REVISÓ Y CUÁNDO LO SELLA EL MOTOR
+--
+-- Si lo pusiera el navegador, un moderador podría firmar su decisión
+-- con el correo de otro. Aquí no puede.
+-- =====================================================================
+create or replace function public.sellar_revision() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  quien text := nullif(auth.jwt() ->> 'email', '');
+begin
+  if tg_table_name = 'reportes' then
+    new.revisado_en  := now();
+    new.revisado_por := quien;
+  elsif tg_table_name = 'voluntarios' then
+    new.verificado_por := quien;
+  elsif tg_table_name = 'puntos_acopio' then
+    new.fecha_verificacion := current_date;
+  end if;
+  return new;
+end $$;
+
+create trigger sella_revision before update on public.reportes
+  for each row execute function public.sellar_revision();
+create trigger sella_revision before update on public.voluntarios
+  for each row execute function public.sellar_revision();
+create trigger sella_revision before update on public.puntos_acopio
+  for each row execute function public.sellar_revision();
+
+-- =====================================================================
 -- LO QUE EL PÚBLICO SÍ PUEDE ESCRIBIR
 -- Tres funciones. Nada más. Insertan; nunca devuelven datos ajenos.
 -- =====================================================================
@@ -218,6 +345,8 @@ create or replace function public.crear_reporte(p jsonb)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare nuevo uuid;
 begin
+  perform public.registrar_envio();
+
   insert into public.reportes (
     departamento, municipio, referencia, lat, lon, precision_m,
     tipo_residuo, volumen, riesgo_sanitario, necesita_gestor, foto_url, notas)
@@ -251,6 +380,8 @@ create or replace function public.crear_voluntario(p jsonb)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare nuevo uuid;
 begin
+  perform public.registrar_envio();
+
   -- Sin aceptación de las reglas de seguridad no se registra a nadie.
   if coalesce((p->>'acepto_seguridad')::boolean, false) is not true then
     raise exception 'Debe aceptar las reglas de seguridad';
@@ -287,6 +418,8 @@ create or replace function public.proponer_punto(p jsonb)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare nuevo uuid;
 begin
+  perform public.registrar_envio();
+
   insert into public.puntos_acopio (
     nombre, tipo, departamento, municipio, direccion,
     materiales_si, materiales_no, horario, recoge_domicilio,
@@ -313,6 +446,8 @@ end $$;
 -- PERMISOS
 -- =====================================================================
 revoke all on all tables in schema public from anon, authenticated;
+revoke all on function public.registrar_envio(), public.ip_cliente()
+  from anon, authenticated;
 
 grant select on public.v_reportes_publicos,
                 public.v_puntos_publicos,
@@ -322,7 +457,17 @@ grant execute on function public.crear_reporte(jsonb),
                           public.crear_voluntario(jsonb),
                           public.proponer_punto(jsonb) to anon, authenticated;
 
-grant select, update on public.reportes, public.voluntarios, public.puntos_acopio to authenticated;
+grant select on public.reportes, public.voluntarios, public.puntos_acopio to authenticated;
+
+-- Moderar es decidir si algo se publica y en qué estado queda. No es
+-- editar lo que otra persona escribió, así que el permiso de escritura
+-- va columna por columna.
+--   · `notas` de un reporte lo escribe quien reporta: no se toca.
+--   · en voluntarios y puntos, `notas` es el cuaderno de la moderación.
+--   · quién revisó y cuándo lo pone el trigger `sella_revision`.
+grant update (publicado, estado)                on public.reportes      to authenticated;
+grant update (publicado, verificacion, notas)   on public.voluntarios   to authenticated;
+grant update (publicado, verificacion, notas)   on public.puntos_acopio to authenticated;
 grant select on public.reportes_contacto, public.voluntarios_contacto, public.moderadores to authenticated;
 
 -- Primer moderador. Cambiar por el correo real antes de ejecutar.
