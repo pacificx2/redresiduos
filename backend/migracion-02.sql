@@ -325,3 +325,32 @@ begin
   end if;
   return new;
 end $$;
+
+
+-- =====================================================================
+-- G · CERRAR LOS PERMISOS DE LAS FUNCIONES NUEVAS
+--
+-- PostgreSQL concede EXECUTE a PUBLIC en CADA función que se crea. La
+-- revocación general vive en migracion-01.sql, que se ejecutó antes de
+-- que existieran `autopublicar()` y `sellar_ajuste()`, así que esas dos
+-- nacieron abiertas: con la clave pública se podía preguntar si la
+-- publicación automática estaba encendida.
+--
+-- Por eso este bloque va AL FINAL y no al principio: tiene que correr
+-- después de crear las funciones, no antes. Es la misma razón por la que
+-- en schema.sql la sección de permisos es lo último del archivo.
+-- =====================================================================
+
+revoke all on all functions in schema public from public;
+revoke all on all functions in schema public from anon, authenticated;
+
+grant execute on function public.crear_reporte(jsonb),
+                          public.crear_voluntario(jsonb),
+                          public.proponer_punto(jsonb) to anon, authenticated;
+
+grant execute on function public.es_moderador() to authenticated;
+
+-- Comprobación: las dos primeras deben fallar, la tercera debe funcionar.
+--   set role anon;           select public.autopublicar();   -- permission denied
+--   set role anon;           select public.es_moderador();   -- permission denied
+--   set role authenticated;  select public.es_moderador();   -- false o true

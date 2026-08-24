@@ -228,3 +228,11 @@ delete from public.reportes;
 reset role;
 select 'T30 un no-moderador no pudo borrar nada' as prueba, count(*) > 0 as siguen_ahi
   from public.reportes;
+
+-- Las funciones internas nuevas tampoco son del público. Esta prueba existe
+-- porque `autopublicar()` nació abierta en la base migrada: la revocación
+-- general estaba en la migración anterior y corrió antes de crearla.
+set role anon;
+select 'T31 anon llama a autopublicar (debe fallar)' as prueba;
+select public.autopublicar();
+reset role;

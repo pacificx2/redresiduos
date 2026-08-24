@@ -369,12 +369,19 @@ tr:last-child th,tr:last-child td{border-bottom:none}
 .t-voluntarios { --t:var(--t-vol); --t-bg:var(--t-vol-bg); --t-ink:var(--t-vol-ink); }
 .t-puntos      { --t:var(--t-pun); --t-bg:var(--t-pun-bg); --t-ink:var(--t-pun-ink); }
 
-/* La tarjeta de la portada: barra de color a la izquierda y número en el
-   color del tipo, para que las tres se distingan de un vistazo. */
-.card{border-left-color:var(--t, var(--deep))}
-.card:hover{border-left-color:var(--t, var(--deep))}
+/* El color del tipo tiñe la pieza entera, no sólo el borde. Con la franja
+   sola de tres milímetros había que buscarla; con el fondo se distingue de
+   un vistazo y desde lejos, que es como se mira un teléfono en la calle. */
+.card{
+  background:var(--t-bg, var(--surface));
+  border-color:var(--t, var(--line-strong));
+  border-left-color:var(--t, var(--deep));
+}
+.card:hover{border-color:var(--t, var(--deep))}
+.card h2, .card p{color:var(--t-ink, var(--ink))}
 .card-n{
-  color:var(--t-ink, var(--deep)); background:var(--t-bg, var(--surface-2));
+  color:var(--t-ink, var(--deep)); background:var(--surface);
+  border:1px solid var(--t, var(--line-strong));
   border-radius:6px; padding:.15rem .4rem; align-self:flex-start;
 }
 
@@ -388,12 +395,25 @@ tr:last-child th,tr:last-child td{border-bottom:none}
   letter-spacing:.1em; text-transform:uppercase; font-weight:500;
 }
 
-/* Ficha: el borde izquierdo dice de qué tipo es. */
-.ficha{border-left-color:var(--t, var(--line-strong))}
+/* Ficha: el fondo entero dice de qué tipo es. */
+.ficha{
+  background:var(--t-bg, var(--surface));
+  border-color:var(--t, var(--line-strong));
+  border-left-color:var(--t, var(--line-strong));
+}
+/* Sobre el fondo teñido, el texto secundario necesita su propio tono: el
+   gris de siempre se pierde contra el pastel. */
+.ficha dt, .ficha .ficha-meta{color:var(--t-ink, var(--ink-3)); opacity:.85}
+.ficha dd, .ficha h3{color:var(--t-ink, var(--ink))}
+/* Lo que va dentro (avisos, foto, campos del formulario) se levanta sobre
+   el fondo del papel para que no se confunda con la ficha. */
+.ficha input, .ficha select, .ficha textarea{background:var(--surface)}
+.ficha .acciones{border-top-color:var(--t, var(--line))}
 
 /* Pestaña activa: subrayada en el color de su tipo. */
 .tab[aria-selected="true"]{border-bottom-color:var(--t, var(--hivis))}
 .tab[aria-selected="true"] .n{background:var(--t-bg, var(--surface-2)); color:var(--t-ink, var(--ink-2))}
 
-/* Etiqueta con el color del tipo. */
-.pill-tipo{background:var(--t-bg); border-color:var(--t); color:var(--t-ink)}
+/* Etiqueta del tipo: en negativo sobre la ficha teñida, para que se lea.
+   Si usara `--t-bg` como fondo desaparecería dentro de su propia ficha. */
+.pill-tipo{background:var(--surface); border-color:var(--t); color:var(--t-ink)}
