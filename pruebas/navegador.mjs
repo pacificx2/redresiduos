@@ -98,8 +98,16 @@ const navegador = await chromium.launch();
     await p.evaluate(() => [...document.querySelectorAll('link[rel="stylesheet"]')]
       .filter(l => new URL(l.href, location.href).origin !== location.origin)
       .every(l => l.media === 'print' || l.media === 'all')));
+  // El href lleva `?v=N` para que un despliegue no se quede detrás de la
+  // caché del navegador, así que se compara el nombre y no la cadena entera.
   comprobar('los estilos propios sí se cargan de forma normal',
-    await p.evaluate(() => !!document.querySelector('link[rel="stylesheet"][href="estilos.css"]')));
+    await p.evaluate(() => [...document.querySelectorAll('link[rel="stylesheet"]')]
+      .some(l => new URL(l.href, location.href).pathname.endsWith('/estilos.css'))));
+  comprobar('los archivos propios llevan versión contra la caché',
+    await p.evaluate(() => [...document.querySelectorAll('link[rel="stylesheet"],script[src]')]
+      .filter(e => { const u = new URL(e.href || e.src, location.href);
+                     return u.origin === location.origin; })
+      .every(e => /\?v=\d+/.test(e.getAttribute('href') || e.getAttribute('src')))));
 
   await p.click('.card >> nth=0');
   await p.waitForSelector('#f1.on', { timeout: 5000 });
@@ -109,6 +117,34 @@ const navegador = await chromium.launch();
     await p.locator('#f1 a[href="datos.html"]').count() === 2);
   comprobar('la autorización va antes del botón de envío',
     norm(await p.textContent('#f1')).includes('Al enviar, autoriza el tratamiento'));
+
+  /* La casilla "autorizo publicar mi contacto" del formulario de reportes
+     prometía una publicación que la vista pública nunca hace. Se quitó, y
+     estas dos comprobaciones impiden que vuelva por descuido. */
+  comprobar('no queda la casilla que no hacía nada',
+    await p.locator('#r-cons').count() === 0);
+  comprobar('el envío de un reporte no manda publicar_contacto',
+    await p.evaluate(() => !('publicar_contacto' in recoger('f1').datos)));
+  comprobar('y el formulario dice que el número no se publica',
+    norm(await p.textContent('#f1')).includes('no aparecen en ninguna pantalla pública'));
+
+  await p.click('.back');
+  await p.waitForSelector('#home.on');
+  /* Lo primero de la portada tiene que ser lo que la gente viene a hacer.
+     El aviso de seguridad va después de las tarjetas, no delante. */
+  comprobar('las tarjetas van antes del aviso de seguridad',
+    await p.evaluate(() => {
+      const cards = document.querySelector('#home .cards');
+      const aviso = document.querySelector('#home .note-warn');
+      return !!cards && !!aviso &&
+        (cards.compareDocumentPosition(aviso) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+    }));
+  comprobar('las tres tarjetas tienen fondos distintos',
+    await p.evaluate(() => new Set([...document.querySelectorAll('.card')]
+      .map(c => getComputedStyle(c).backgroundColor)).size === 3));
+
+  await p.click('.card >> nth=0');
+  await p.waitForSelector('#f1.on');
   comprobar('no desborda a lo ancho',
     !(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
   comprobar('sin errores de JS', errs.length === 0);

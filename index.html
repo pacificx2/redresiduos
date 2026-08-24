@@ -18,7 +18,7 @@
 <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
-<link rel="stylesheet" href="estilos.css">
+<link rel="stylesheet" href="estilos.css?v=3">
 </head>
 <body>
 
@@ -40,16 +40,6 @@
       desconectadas: dónde se acumulan los residuos, quién puede coordinar en el territorio,
       y a dónde hay que llevarlos.</p>
     <p class="fine">Este sitio no reemplaza a las autoridades ni a la UNGRD.</p>
-  </div>
-
-  <div class="note note-warn" style="margin-bottom:1rem">
-    <h3>Seguridad primero</h3>
-    <ul>
-      <li>Nadie entra a estructuras afectadas o sin evaluación técnica. Ni por un reporte de aquí.</li>
-      <li>Residuos hospitalarios, medicamentos, pilas, escombros y electrónicos <strong>no los mueven
-        voluntarios</strong>: repórtelos y déjelos marcados.</li>
-      <li>Antes de convocar una jornada, avise al Consejo Municipal de Gestión del Riesgo.</li>
-    </ul>
   </div>
 
   <div class="cards">
@@ -76,9 +66,20 @@
     </button>
   </div>
 
+  <div class="note note-warn" style="margin-top:1.6rem">
+    <h3>Seguridad primero</h3>
+    <ul>
+      <li>Nadie entra a estructuras afectadas o sin evaluación técnica. Ni por un reporte de aquí.</li>
+      <li>Residuos hospitalarios, medicamentos, pilas, escombros y electrónicos <strong>no los mueven
+        voluntarios</strong>: repórtelos y déjelos marcados.</li>
+      <li>Antes de convocar una jornada, avise al Consejo Municipal de Gestión del Riesgo.</li>
+    </ul>
+  </div>
+
   <p class="fine" style="margin-top:1.4rem">
     Los datos personales se tratan conforme a la Ley 1581 de 2012. Ningún contacto se publica
     sin autorización expresa de su titular.
+    <a href="datos.html">Cómo tratamos sus datos</a>.
   </p>
 </section>
 
@@ -151,11 +152,13 @@
       <input type="tel" id="r-wa" placeholder="300 000 0000">
     </div>
 
-    <div class="check">
-      <input type="checkbox" id="r-cons">
-      <label for="r-cons">Autorizo que mi contacto se publique junto al reporte para que
-        me puedan escribir sobre este punto. Si no lo marca, su número solo lo verá el equipo de moderación.
-        <a href="datos.html" target="_blank" rel="noopener">Cómo tratamos sus datos</a>.</label>
+    <div class="note note-plain">
+      <h3>Su número no se publica</h3>
+      <p style="margin:0">El nombre y el teléfono que ponga aquí <strong>no aparecen
+      en ninguna pantalla pública</strong>, ni marcando nada. Viven en una tabla
+      aparte que solo puede leer el equipo que coordina, y sirven para llamarle si
+      hace falta precisar dónde está el punto.
+      <a href="datos.html" target="_blank" rel="noopener">Cómo tratamos sus datos</a>.</p>
     </div>
 
     <div class="field">
@@ -343,7 +346,7 @@
 
 </div>
 
-<script src="config.js"></script>
+<script src="config.js?v=3"></script>
 <script>
 var LISTAS = {
   dep:["Chocó","Risaralda","Valle del Cauca","Caldas","Quindío","Antioquia","Cauca","Tolima",
@@ -481,8 +484,10 @@ function recoger(cual){
       necesita_gestor: PELIGROSOS.indexOf(val('r-tipo')) > -1,
       notas: val('r-notas'),
       quien_reporta: val('r-quien'),
-      whatsapp: val('r-wa'),
-      publicar_contacto: chk('r-cons')
+      whatsapp: val('r-wa')
+      /* Sin `publicar_contacto`: la vista pública de reportes no expone el
+         contacto en ningún caso, así que la casilla que había aquí prometía
+         una publicación que nunca ocurría. Se quitó en vez de fingirla. */
     }};
   }
   if (cual === 'f2'){

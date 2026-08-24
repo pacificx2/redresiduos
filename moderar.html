@@ -18,7 +18,7 @@
 <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
-<link rel="stylesheet" href="estilos.css">
+<link rel="stylesheet" href="estilos.css?v=3">
 </head>
 <body>
 
@@ -114,7 +114,7 @@
 
 </div>
 
-<script src="config.js"></script>
+<script src="config.js?v=3"></script>
 <script>
 /* =====================================================================
    MODERACIÓN
@@ -420,10 +420,12 @@ var TIPOS = {
       {k:'foto_url', et:'Dirección de la foto'},
       {k:'estado',   et:'Estado del reporte', ops:ESTADOS}
     ],
+    /* Sin `publicar_contacto`: la vista pública de reportes no expone el
+       contacto en ningún caso, así que esa casilla no gobernaba nada. En
+       voluntarios y puntos sí decide, y allí sigue. */
     camposHijo:[
-      {k:'quien_reporta', et:'Quién reporta'},
-      {k:'whatsapp',      et:'WhatsApp'},
-      {k:'publicar_contacto', et:'Autorizó publicar su contacto', bool:true}
+      {k:'quien_reporta', et:'Quién reporta (no se publica)'},
+      {k:'whatsapp',      et:'WhatsApp de quien reporta (no se publica)'}
     ]
   },
   voluntarios: {

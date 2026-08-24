@@ -71,6 +71,10 @@ Las listas desplegables son exactamente las de la hoja `Listas`.
 - **Un color por tipo de señalización**, el mismo en el formulario, en el
   directorio y en la moderación: ámbar para los residuos señalados, violeta
   para quien coordina, azul para los puntos donde llevar el material.
+- **De un reporte no se publica nunca el contacto de quien reporta.** Había una
+  casilla para autorizarlo que no gobernaba nada, porque la vista pública no
+  expone esas columnas en ningún caso. Se quitó la casilla en vez de fingir que
+  servía, y el formulario dice en su lugar qué pasa de verdad con el número.
 - **Publicar, moderar y eliminar son tres cosas distintas** y se guardan en tres
   columnas separadas, porque son tres preguntas distintas: si se ve, si alguien
   lo miró, y si un moderador lo retiró.
@@ -115,9 +119,6 @@ node pruebas/navegador.mjs
 4. Un punto de acopio no tiene forma de guardar su ubicación: el formulario no
    pide GPS y la función de inserción no acepta `lat`/`lon`. El directorio
    intenta pintar un enlace al mapa que nunca puede aparecer.
-5. La casilla "autorizo publicar mi contacto" del formulario de reportes no
-   hace nada: la vista pública de reportes no expone el contacto en ningún
-   caso. O se cumple la promesa, o se quita la casilla.
 
 Y hay que atender de verdad `contacto@reciclamores.org`, porque el aviso de
 datos promete por escrito que ahí se responde en diez días hábiles.

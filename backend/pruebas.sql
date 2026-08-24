@@ -236,3 +236,14 @@ set role anon;
 select 'T31 anon llama a autopublicar (debe fallar)' as prueba;
 select public.autopublicar();
 reset role;
+
+-- La promesa nueva del formulario de reportes: el contacto de quien reporta
+-- no sale por ninguna vista pública, marque lo que marque. Se comprueba
+-- contra la definición de la vista, no contra los datos, para que siga
+-- valiendo aunque la tabla esté vacía.
+select 'T32 la vista pública de reportes no expone contacto' as prueba,
+  not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='v_reportes_publicos'
+      and column_name in ('quien_reporta','whatsapp','publicar_contacto')
+  ) as ok;
