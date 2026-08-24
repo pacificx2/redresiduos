@@ -262,6 +262,15 @@ const navegador = await chromium.launch();
   comprobar('nombra a la autoridad de control',
     prosa.includes('Superintendencia de Industria y Comercio'));
   comprobar('dice qué NO se recoge', prosa.includes('No se piden datos sensibles'));
+  comprobar('identifica al responsable', prosa.includes('Reciclamores') && prosa.includes('901.940.748-1'));
+  comprobar('ofrece los dos canales de contacto',
+    await p.locator('#correo-datos').count() === 1 &&
+    await p.locator('.prosa a[href*="api.whatsapp.com"]').count() === 1);
+  // El detector tiene que distinguir "falta el dato" de "el dato no sirve".
+  comprobar('no dice que falten datos, porque ya están',
+    !(await p.textContent('#incompleto')).includes('todavía no está completo'));
+  comprobar('avisa de que el correo está en un dominio local',
+    (await p.textContent('#incompleto')).includes('no recibe desde internet'));
   comprobar('no desborda a lo ancho',
     !(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
   comprobar('sin errores de JS', errs.length === 0);

@@ -13,10 +13,11 @@ Los tres formularios escriben en la base de datos (Supabase). Existen ya la
 pantalla de moderación, el aviso de tratamiento de datos y el directorio
 público, y hay un límite de envíos por hora que frena el ruido.
 
-**Todavía no difundir el enlace.** Falta lo de la lista de abajo, y sobre todo
-falta rellenar los datos del responsable en `datos.html`: sin ellos el aviso no
-cumple la Ley 1581, porque el titular no sabe a quién reclamarle. La propia
-página lo avisa en rojo mientras estén sin rellenar.
+**Todavía no difundir el enlace.** Falta lo de la lista de abajo. En
+particular, el correo de contacto del aviso de datos está en un dominio
+`.local`, que no recibe mensajes desde internet: mientras siga así, el derecho
+a reclamar que promete la página sólo se puede ejercer por WhatsApp. La propia
+página lo avisa en rojo.
 
 ## Las páginas
 
@@ -93,7 +94,9 @@ node pruebas/navegador.mjs
 
 ## Pendiente antes de difundir
 
-1. **Rellenar los datos del responsable** en `datos.html`, sección 1.
+1. **Un correo de contacto que reciba desde internet**, para `datos.html`,
+   sección 1. Hoy es `contacto@reciclamores-local.local`, y `.local` está
+   reservado para redes locales: nadie de fuera puede escribir ahí.
 2. **Configurar el acceso de los moderadores** en Supabase y dar de alta al
    primero. Ver `backend/README.md`.
 3. **Definir quién actúa sobre los reportes.** No es código: sin ese acuerdo,

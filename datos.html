@@ -54,16 +54,20 @@
 <h2 id="responsable">1 · Quién responde por estos datos</h2>
 <dl>
   <dt>Responsable del tratamiento</dt>
-  <dd class="rellenar">Reciclamores — [RAZÓN SOCIAL COMPLETA]</dd>
+  <dd class="rellenar">Reciclamores</dd>
   <dt>NIT</dt>
-  <dd class="rellenar">[NIT]</dd>
+  <dd class="rellenar">901.940.748-1</dd>
   <dt>Dirección</dt>
-  <dd class="rellenar">[DIRECCIÓN FÍSICA]</dd>
+  <dd class="rellenar">Reciclamores no tiene sede física abierta al público. La
+  atención sobre datos personales es por los dos canales de aquí abajo, y se
+  atiende igual que si hubiera una ventanilla.</dd>
   <dt>Correo para asuntos de datos personales</dt>
-  <dd class="rellenar">[CORREO]</dd>
-  <dt>Teléfono</dt>
-  <dd class="rellenar">[TELÉFONO]</dd>
+  <dd class="rellenar"><a id="correo-datos" href="mailto:contacto@reciclamores-local.local">contacto@reciclamores-local.local</a></dd>
+  <dt>WhatsApp</dt>
+  <dd class="rellenar"><a href="https://api.whatsapp.com/message/XR4KOEQPE4ARM1?autoload=1&amp;app_absent=0" target="_blank" rel="noopener">Escribir por WhatsApp a Reciclamores</a></dd>
 </dl>
+<p>Cualquiera de los dos canales sirve para todo lo que dice esta página:
+consultar qué datos suyos tenemos, corregirlos o pedir que se borren.</p>
 <p>Esta es una herramienta comunitaria. No reemplaza a las autoridades ni a la
 UNGRD, y no actúa en su nombre.</p>
 
@@ -167,9 +171,10 @@ es gratuito:</p>
 marcarla no le quita ningún servicio: su reporte se atiende igual.</p>
 
 <h2 id="como">8 · Cómo ejercerlos</h2>
-<p>Escriba al correo de la sección 1 diciendo qué quiere y desde qué número
+<p>Escriba por cualquiera de los dos canales de la
+<a href="#responsable">sección 1</a> diciendo qué quiere y desde qué número
 envió los datos, que es lo que permite encontrarlos. No hace falta explicar
-por qué.</p>
+por qué, y no se cobra nada.</p>
 <dl>
   <dt>Consultas</dt>
   <dd>Se responden en un máximo de <strong>diez días hábiles</strong>. Si no se
@@ -215,12 +220,32 @@ efecto.</p>
       celdas[i].style.fontWeight = '600';
     }
   }
-  if (!faltan.length) return;
+  if (faltan.length) {
+    document.getElementById('incompleto').innerHTML =
+      '<div class="note note-danger"><h3>Este aviso todavía no está completo</h3>' +
+      '<p style="margin:0">Falta por rellenar: <strong>' + faltan.join(', ') + '</strong>. ' +
+      'Sin esos datos el aviso no cumple la Ley 1581, porque el titular no sabe a ' +
+      'quién reclamarle. Están en <code>datos.html</code>, sección 1.</p></div>';
+    return;
+  }
+
+  /* Un correo relleno no sirve de nada si su dominio no existe fuera de una
+     red local: el titular escribiría a un buzón que no recibe. `.local`,
+     `.test`, `.invalid`, `.example` y `localhost` están reservados por norma
+     y ningún servidor de internet los entrega. */
+  var enlace = document.getElementById('correo-datos');
+  var correo = enlace ? enlace.textContent.trim() : '';
+  if (!/\.(local|test|invalid|example|localdomain)$|@localhost$/i.test(correo)) return;
+
+  enlace.style.color = 'var(--danger)';
+  enlace.style.fontWeight = '600';
   document.getElementById('incompleto').innerHTML =
-    '<div class="note note-danger"><h3>Este aviso todavía no está completo</h3>' +
-    '<p style="margin:0">Falta por rellenar: <strong>' + faltan.join(', ') + '</strong>. ' +
-    'Sin esos datos el aviso no cumple la Ley 1581, porque el titular no sabe a ' +
-    'quién reclamarle. Están en <code>datos.html</code>, sección 1.</p></div>';
+    '<div class="note note-danger"><h3>Este correo no recibe desde internet</h3>' +
+    '<p style="margin:0"><code>' + correo + '</code> está en un dominio reservado ' +
+    'para redes locales, así que un mensaje enviado desde fuera nunca llega. ' +
+    'Mientras siga así, el derecho a reclamar que promete esta página no se puede ' +
+    'ejercer por correo: sólo queda el WhatsApp. Cámbielo por un buzón real en ' +
+    '<code>datos.html</code>, sección 1.</p></div>';
 })();
 </script>
 
