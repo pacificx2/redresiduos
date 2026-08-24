@@ -8,7 +8,16 @@
 <meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<!-- Las tipografías se cargan sin bloquear el pintado. Un <link rel=stylesheet>
+     normal detiene la página hasta que responde el servidor de Google: medido
+     con ese servidor inalcanzable, la pantalla se quedaba en blanco 12,5 s. En
+     zona de emergencia con mala señal eso es una página muerta. Con media=print
+     el navegador la baja en segundo plano y `onload` la activa al llegar; si no
+     llega nunca, se ve con la tipografía del sistema y todo funciona igual. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
 <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
@@ -207,21 +216,66 @@ function pedirEnlace(ev){
   fetch(SUPABASE_URL + '/auth/v1/otp?redirect_to=' + encodeURIComponent(destino), {
     method:'POST',
     headers:{ 'apikey':SUPABASE_KEY, 'Content-Type':'application/json' },
-    // `create_user:false` para que pedir el enlace no dé de alta a nadie.
-    body: JSON.stringify({ email: correo, create_user: false })
+    /* `create_user: true` a propósito, y conviene entender por qué.
+
+       Entrar y poder ver son dos cosas distintas. Supabase guarda en
+       `auth.users` a quien puede iniciar sesión; la tabla `moderadores`
+       decide quién ve algo. Son independientes: añadir a alguien a
+       `moderadores` no le crea el usuario de autenticación.
+
+       Con `create_user: false`, a quien no estuviera ya en `auth.users`
+       el servidor le respondía `otp_disabled`, así que la primera entrada
+       de cualquier moderador era imposible salvo invitándolo antes a mano
+       desde el panel. Nadie puede adivinar ese paso cuando falla.
+
+       Dejarlo en `true` no abre nada: quien pida un enlace sin estar en
+       `moderadores` entra y no ve absolutamente nada, porque quien puede
+       leer los datos lo impone la seguridad a nivel de fila y no esta
+       página. Y hace que la respuesta de abajo sea la misma para todo el
+       mundo, que es lo que de verdad evita que esto sirva para averiguar
+       quién modera.
+
+       El precio es que cualquiera puede hacer que se envíe un correo de
+       acceso a una dirección cualquiera. Supabase limita ese envío por
+       hora. Si algún día molesta, se pone `false` aquí y se invita a cada
+       moderador desde Authentication → Users. Ver backend/README.md. */
+    body: JSON.stringify({ email: correo, create_user: true })
   }).then(function(r){
-    return r.text().then(function(t){ if (!r.ok) throw new Error(t); });
+    return r.text().then(function(t){
+      if (!r.ok) { var e = new Error(t); e.http = r.status; throw e; }
+    });
   }).then(function(){
     aviso.innerHTML = '<div class="note note-ok"><h3>Enlace enviado</h3>' +
       '<p style="margin:0">Revise <strong>' + esc(correo) + '</strong>. El enlace ' +
-      'caduca pronto y sólo sirve una vez. Ábralo en este mismo teléfono o equipo.</p></div>';
-  }).catch(function(){
-    // A propósito no se distingue "no existe" de "sí existe": si no,
-    // esta página sirve para averiguar quién modera.
-    aviso.innerHTML = '<div class="note note-warn"><h3>No se pudo enviar</h3>' +
-      '<p style="margin:0">Si ese correo está dado de alta como moderador, le ' +
-      'llegará el enlace. Si no llega en unos minutos, pídaselo a quien ' +
-      'administra la base.</p></div>';
+      'caduca pronto y sólo sirve una vez. Ábralo en este mismo teléfono o equipo.</p>' +
+      '<p style="margin:0">Si ese correo no está dado de alta como moderador, podrá ' +
+      'entrar pero no verá nada. Eso es lo esperado.</p></div>';
+  }).catch(function(err){
+    /* Cuando el fallo es de configuración hay que decirlo con todas las
+       letras. Un mensaje vago aquí hace perder una tarde buscando el
+       problema donde no está. Nada de esto revela quién modera: son
+       estados del proyecto, iguales para cualquier correo. */
+    var crudo = String(err && err.message || '');
+    var titulo = 'No se pudo enviar', cuerpo;
+
+    if (err.http === 429 || crudo.indexOf('rate') > -1) {
+      titulo = 'Demasiados intentos seguidos';
+      cuerpo = 'Supabase limita cuántos correos de acceso salen por hora. ' +
+               'Espere un rato y vuelva a pedirlo.';
+    } else if (crudo.indexOf('otp_disabled') > -1 || crudo.indexOf('Signups not allowed') > -1) {
+      cuerpo = 'El proyecto de Supabase no está aceptando enlaces de acceso. ' +
+               'Quien lo administre tiene que activar el proveedor de correo en ' +
+               '<strong>Authentication → Providers → Email</strong>.';
+    } else if (crudo.indexOf('redirect') > -1 || crudo.indexOf('validation_failed') > -1) {
+      cuerpo = 'Esta dirección no está en la lista de redirecciones permitidas ' +
+               'del proyecto. Quien lo administre tiene que añadirla en ' +
+               '<strong>Authentication → URL Configuration</strong>.';
+    } else {
+      cuerpo = 'Puede ser la conexión. Si vuelve a fallar con señal, avise a quien ' +
+               'administra la base y páselo tal cual: <code>' + esc(crudo).slice(0,180) + '</code>';
+    }
+    aviso.innerHTML = '<div class="note note-warn"><h3>' + titulo + '</h3>' +
+      '<p style="margin:0">' + cuerpo + '</p></div>';
   }).then(function(){
     boton.disabled = false; boton.textContent = 'Enviarme el enlace';
   });

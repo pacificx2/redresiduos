@@ -82,6 +82,16 @@ const navegador = await chromium.launch();
   comprobar('no está en modo quirks',
     await p.evaluate(() => document.compatMode) === 'CSS1Compat');
 
+  /* Ninguna hoja de estilos de un tercero puede bloquear el pintado: con el
+     servidor de tipografías inalcanzable, un <link rel=stylesheet> normal
+     dejaba la pantalla en blanco 12,5 segundos. */
+  comprobar('las tipografías no bloquean el pintado',
+    await p.evaluate(() => [...document.querySelectorAll('link[rel="stylesheet"]')]
+      .filter(l => new URL(l.href, location.href).origin !== location.origin)
+      .every(l => l.media === 'print' || l.media === 'all')));
+  comprobar('los estilos propios sí se cargan de forma normal',
+    await p.evaluate(() => !!document.querySelector('link[rel="stylesheet"][href="estilos.css"]')));
+
   await p.click('.card >> nth=0');
   await p.waitForSelector('#f1.on', { timeout: 5000 });
   comprobar('navega al formulario de reportes', await p.isVisible('#f1.on'));
@@ -175,6 +185,67 @@ const navegador = await chromium.launch();
   comprobar('sin sesión pide el correo', await p.isVisible('#acceso.on'));
   comprobar('no se ve nada de la bandeja', !(await p.isVisible('#panel.on')));
   await ctx.close();
+}
+
+/* ---------------------------------------------------------------------
+   3 bis · Pedir el enlace de acceso
+   Se simula la respuesta de Supabase: no se manda ningún correo de verdad,
+   entre otras cosas porque el envío está limitado por hora y gastarlo aquí
+   dejaría a un moderador real sin poder entrar.
+   --------------------------------------------------------------------- */
+{
+  console.log('\nmoderar.html · pedir el enlace');
+
+  async function pedir(respuesta){
+    const ctx = await navegador.newContext({ ...devices['Pixel 7'] });
+    const p = await ctx.newPage();
+    await ctx.addInitScript(([r]) => {
+      window.__cuerpos = [];
+      const real = window.fetch;
+      window.fetch = (u, o = {}) => {
+        u = String(u);
+        if (u.includes('/auth/v1/otp')) {
+          window.__cuerpos.push(o.body);
+          return Promise.resolve(new Response(r.cuerpo, { status: r.estado }));
+        }
+        return real(u, o);
+      };
+    }, [respuesta]);
+    await p.goto(RAIZ + '/moderar.html', { waitUntil: 'domcontentloaded' });
+    await p.waitForSelector('#acceso.on', { timeout: 10000 });
+    await p.fill('#correo', 'mod@ejemplo.org');
+    await p.click('#btn-enlace');
+    await p.waitForSelector('#aviso-acceso .note', { timeout: 5000 });
+    const texto = norm(await p.textContent('#aviso-acceso'));
+    const cuerpos = await p.evaluate(() => window.__cuerpos);
+    await ctx.close();
+    return { texto, cuerpos };
+  }
+
+  const bien = await pedir({ estado: 200, cuerpo: '{}' });
+  // El fallo que dejó a todo el mundo fuera: create_user:false impedía la
+  // primera entrada de cualquier moderador, porque `moderadores` no crea
+  // el usuario de `auth.users`.
+  comprobar('pide a Supabase que cree el usuario si no existe',
+    bien.cuerpos[0] && JSON.parse(bien.cuerpos[0]).create_user === true);
+  comprobar('confirma el envío', bien.texto.includes('Enlace enviado'));
+  comprobar('avisa de que entrar no es lo mismo que ver',
+    bien.texto.includes('podrá entrar pero no verá nada'));
+
+  const limite = await pedir({ estado: 429, cuerpo: '{"error_code":"over_email_send_rate_limit"}' });
+  comprobar('distingue el límite de envíos', limite.texto.includes('Demasiados intentos seguidos'));
+
+  const apagado = await pedir({ estado: 422, cuerpo: '{"error_code":"otp_disabled","msg":"Signups not allowed for otp"}' });
+  comprobar('señala el proveedor de correo apagado',
+    apagado.texto.includes('Authentication → Providers → Email'));
+
+  const redir = await pedir({ estado: 400, cuerpo: '{"error_code":"validation_failed","msg":"Invalid redirect URL"}' });
+  comprobar('señala la redirección no permitida',
+    redir.texto.includes('Authentication → URL Configuration'));
+
+  const raro = await pedir({ estado: 500, cuerpo: 'algo inesperado del servidor' });
+  comprobar('un fallo desconocido se muestra tal cual, sin tragárselo',
+    raro.texto.includes('algo inesperado del servidor'));
 }
 
 /* ---------------------------------------------------------------------

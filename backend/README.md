@@ -41,6 +41,27 @@ instalación nueva hecha con `schema.sql`.
 
 ## Dar acceso al equipo de moderación
 
+**Entrar y poder ver son dos cosas distintas, y conviene tenerlo claro
+porque no es evidente:**
+
+- `auth.users`, que es de Supabase, guarda a quien puede **iniciar sesión**.
+- `public.moderadores`, que es nuestra, decide quién **ve algo**.
+
+Son independientes. Añadir a alguien a `moderadores` no le crea el usuario de
+autenticación, y tener usuario no le da acceso a ningún dato. Quien pida un
+enlace sin estar en `moderadores` entra y no ve absolutamente nada: la
+seguridad a nivel de fila le devuelve listas vacías.
+
+Por eso `moderar.html` pide el enlace con `create_user: true`. Con `false`, a
+quien no estuviera ya en `auth.users` Supabase le respondía `otp_disabled` y la
+primera entrada de cualquier moderador era imposible sin invitarlo antes a mano
+desde el panel, un paso que nadie puede adivinar cuando falla. No abre nada,
+porque el permiso no lo da entrar sino la tabla `moderadores`.
+
+Si algún día molesta que cualquiera pueda hacer que se envíe un correo de
+acceso a una dirección cualquiera, se cambia a `false` en `moderar.html` y se
+invita a cada moderador desde **Authentication → Users → Invite**.
+
 `moderar.html` entra con un enlace de un solo uso enviado al correo. No hay
 contraseñas. Hacen falta tres cosas, y las tres son en el panel de Supabase:
 
