@@ -64,6 +64,10 @@ Las listas desplegables son exactamente las de la hoja `Listas`.
   escombros, la interfaz advierte que no lo mueven voluntarios.
 - **Consentimiento explícito** para publicar cualquier contacto (Ley 1581 de 2012).
 - El aporte al directorio exige confirmar que se llamó al punto antes de proponerlo.
+- **Blanco, azul y pasteles**, con todo el texto por encima del mínimo de
+  contraste de la norma (4,5:1, y 3:1 en titulares grandes) en modo claro y
+  en modo oscuro. Se comprueba solo en `pruebas/navegador.mjs`, midiendo
+  sobre la página ya pintada y no sobre la hoja de estilos.
 - **Directorio sin mapa embebido.** Un mapa necesita descargar teselas de un
   servidor de terceros; una lista filtrable con enlace a Google Maps por punto
   da la misma información, carga con mala señal y no le cuenta a nadie de fuera

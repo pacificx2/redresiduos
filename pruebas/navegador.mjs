@@ -365,6 +365,72 @@ const navegador = await chromium.launch();
   await ctx.close();
 }
 
+/* ---------------------------------------------------------------------
+   6 · Paleta: los tres bloques y el contraste
+   El modo oscuro llegó a estar ilegible porque el bloque de la media query
+   olvidaba `--ink` e `--ink-2`: texto casi negro sobre fondo casi negro,
+   1,06:1. Estas dos pruebas existen por eso.
+   --------------------------------------------------------------------- */
+{
+  console.log('\nestilos.css · paleta');
+
+  const css = await (await fetch(RAIZ + '/estilos.css')).text();
+  const tokens = (bloque) => {
+    const i = css.indexOf(bloque);
+    if (i < 0) return null;
+    const cuerpo = css.slice(i, css.indexOf('}', i));
+    return new Set((cuerpo.match(/--[a-z0-9-]+(?=\s*:)/g) || []));
+  };
+  const claro  = tokens(':root{');
+  const oscuro = tokens(':root:not([data-theme="light"]){');
+  const manual = tokens(':root[data-theme="dark"]{');
+
+  const iguales = (a, b) => a && b && a.size === b.size && [...a].every(t => b.has(t));
+  comprobar('el modo oscuro define los mismos tokens que el claro', iguales(claro, oscuro));
+  comprobar('el modo oscuro manual define los mismos que el automático', iguales(oscuro, manual));
+  if (claro && oscuro) {
+    const faltan = [...claro].filter(t => !oscuro.has(t));
+    if (faltan.length) console.log('     faltan en el modo oscuro: ' + faltan.join(', '));
+  }
+
+  /* Contraste real, sobre las páginas ya pintadas, en los dos modos.
+     El mínimo es el de la norma: 4,5:1, y 3:1 en los titulares grandes. */
+  const MEDIR = `(() => {
+    const lum = c => { const [r,g,b]=c.map(v=>{v/=255; return v<=0.03928? v/12.92 : Math.pow((v+0.055)/1.055,2.4);});
+      return 0.2126*r+0.7152*g+0.0722*b; };
+    const rgb = s => (s.match(/[\\d.]+/g)||[]).slice(0,3).map(Number);
+    const fondoDe = el => { let e=el; while(e){ const c=getComputedStyle(e).backgroundColor;
+      if(c && !/rgba\\(0, 0, 0, 0\\)|transparent/.test(c)) return rgb(c); e=e.parentElement; }
+      return rgb(getComputedStyle(document.body).backgroundColor); };
+    const ratio=(a,b)=>{const l1=lum(a),l2=lum(b);return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05);};
+    const fallos=[];
+    document.querySelectorAll('*').forEach(el => {
+      if (el.offsetParent === null && el.tagName !== 'BODY') return;
+      const cs = getComputedStyle(el);
+      if (![...el.childNodes].some(nd => nd.nodeType===3 && nd.textContent.trim())) return;
+      const c = ratio(rgb(cs.color), fondoDe(el)), px = parseFloat(cs.fontSize);
+      const min = (px>=24 || (px>=18.66 && parseInt(cs.fontWeight)>=700)) ? 3 : 4.5;
+      if (c < min) fallos.push(c.toFixed(2)+':1 en .'+(el.className||el.tagName).toString().split(' ')[0]);
+    });
+    return fallos;
+  })()`;
+
+  for (const tema of ['light','dark']) {
+    const ctx = await navegador.newContext({ ...devices['Pixel 7'], colorScheme: tema });
+    const p = await ctx.newPage();
+    const fallos = [];
+    for (const pag of ['index.html','directorio.html','datos.html','moderar.html']) {
+      await p.goto(RAIZ + '/' + pag, { waitUntil: 'domcontentloaded' });
+      await p.waitForTimeout(350);
+      fallos.push(...(await p.evaluate(MEDIR)).map(f => pag + ': ' + f));
+    }
+    comprobar('todo el texto es legible en modo ' + (tema === 'light' ? 'claro' : 'oscuro'),
+      fallos.length === 0);
+    if (fallos.length) fallos.slice(0,6).forEach(f => console.log('     ' + f));
+    await ctx.close();
+  }
+}
+
 await navegador.close();
 console.log('\n' + ok + ' bien, ' + mal + ' mal.');
 process.exit(mal ? 1 : 0);
