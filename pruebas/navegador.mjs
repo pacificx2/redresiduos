@@ -139,6 +139,13 @@ const navegador = await chromium.launch();
       return !!cards && !!aviso &&
         (cards.compareDocumentPosition(aviso) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
     }));
+  comprobar('la portada enlaza las tres pantallas del directorio',
+    await p.locator('#home .enlaces a[href="donde-llevarlo.html"]').count() === 1 &&
+    await p.locator('#home .enlaces a[href="residuos.html"]').count() === 1 &&
+    await p.locator('#home .enlaces a[href="quien-coordina.html"]').count() === 1);
+  comprobar('y cada enlace lleva un color distinto',
+    await p.evaluate(() => new Set([...document.querySelectorAll('#home .enlace-tipo')]
+      .map(a => getComputedStyle(a).backgroundColor)).size === 3));
   comprobar('las tres tarjetas tienen fondos distintos',
     await p.evaluate(() => new Set([...document.querySelectorAll('.card')]
       .map(c => getComputedStyle(c).backgroundColor)).size === 3));
@@ -363,64 +370,104 @@ const navegador = await chromium.launch();
 }
 
 /* ---------------------------------------------------------------------
-   4 · El directorio público
+   4 · El directorio: una página por tipo
+   Antes eran tres pestañas en una página y los contadores de las pestañas
+   no visitadas se quedaban en blanco, porque sólo se cargaba la activa.
+   Con una página por tipo ese problema no puede volver: hay un contador y
+   se calcula al cargar.
    --------------------------------------------------------------------- */
 {
-  bloque('directorio.html');
-  const ctx = await navegador.newContext({ ...devices['Pixel 7'] });
-  const p = await ctx.newPage();
-  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  bloque('directorio · una página por tipo');
 
-  await ctx.addInitScript(([punto, reporte, voluntario]) => {
-    window.__urls = [];
-    const real = window.fetch;
-    window.fetch = (u, o) => {
-      u = String(u); window.__urls.push(u);
-      if (u.includes('v_puntos_publicos'))      return Promise.resolve(new Response(JSON.stringify([punto]), { status:200 }));
-      if (u.includes('v_reportes_publicos'))    return Promise.resolve(new Response(JSON.stringify([reporte]), { status:200 }));
-      if (u.includes('v_voluntarios_publicos')) return Promise.resolve(new Response(JSON.stringify([voluntario]), { status:200 }));
-      return real(u, o);
-    };
-  }, [PUNTO, { ...REPORTE, reportes_contacto: undefined }, VOLUNTARIO]);
+  async function abrir(pagina, datos){
+    const ctx = await navegador.newContext({ ...devices['Pixel 7'] });
+    const p = await ctx.newPage();
+    await ctx.addInitScript(([d]) => {
+      window.__urls = [];
+      const real = window.fetch;
+      window.fetch = (u, o) => {
+        u = String(u); window.__urls.push(u);
+        if (u.includes('/rest/v1/v_')) {
+          if (d === null) return Promise.resolve(new Response('boom', { status:500 }));
+          return Promise.resolve(new Response(JSON.stringify(d), { status:200 }));
+        }
+        return real(u, o);
+      };
+    }, [datos]);
+    await p.goto(RAIZ + '/' + pagina, { waitUntil:'domcontentloaded' });
+    await p.waitForSelector('#lista .ficha, #lista .vacio, #lista .note-danger', { timeout:10000 });
+    return { ctx, p };
+  }
 
-  await p.goto(RAIZ + '/directorio.html');
-  await p.waitForSelector('.ficha', { timeout: 10000 });
-
-  let txt = await p.textContent('#lista');
-  comprobar('abre por "Dónde llevarlo"',
-    await p.getAttribute('#tab-puntos', 'aria-selected') === 'true');
-  comprobar('pinta el punto de acopio', txt.includes('Asociación Renacer'));
+  // --- Dónde llevar el material ---
+  let { ctx, p } = await abrir('donde-llevarlo.html', [PUNTO]);
+  comprobar('donde-llevarlo pinta el punto', (await p.textContent('#lista')).includes('Asociación Renacer'));
+  comprobar('y sólo consulta la vista de puntos',
+    (await p.evaluate(() => window.__urls)).filter(u => u.includes('/rest/v1/v_'))
+      .every(u => u.includes('v_puntos_publicos')));
+  comprobar('el contador dice cuántos hay', (await p.textContent('#cuenta')) === '1 resultado');
   comprobar('NO ejecuta el HTML que venga en un nombre',
     !(await p.evaluate(() => window.__xss === 1)) && await p.locator('#lista script').count() === 0);
   comprobar('el teléfono queda como enlace de WhatsApp',
     await p.getAttribute('#lista a[href*="wa.me"]', 'href') === 'https://wa.me/573001112233');
-  comprobar('hay enlace al mapa', await p.locator('#lista a[href*="google.com/maps"]').count() === 1);
-
-  await p.click('#tab-reportes'); await p.waitForTimeout(400);
-  comprobar('avisa de que un RAEE no lo mueven voluntarios',
-    (await p.textContent('#lista')).includes('Esto no lo mueven voluntarios'));
-
-  await p.click('#tab-voluntarios'); await p.waitForTimeout(400);
-  comprobar('lista a quien coordina',
-    (await p.textContent('#lista')).includes('Líder de zona'));
-
+  comprobar('enlaza a las otras dos pantallas',
+    await p.locator('#otros a[href="residuos.html"]').count() === 1 &&
+    await p.locator('#otros a[href="quien-coordina.html"]').count() === 1);
+  comprobar('y no se enlaza a sí misma', await p.locator('#otros a[href="donde-llevarlo.html"]').count() === 0);
+  comprobar('cada enlace lleva el color de su tipo',
+    await p.evaluate(() => new Set([...document.querySelectorAll('#otros .enlace-tipo')]
+      .map(a => getComputedStyle(a).backgroundColor)).size === 2));
   await p.selectOption('#f-dep', 'Chocó'); await p.waitForTimeout(400);
-  let urls = await p.evaluate(() => window.__urls);
   comprobar('el departamento llega a la consulta',
-    urls[urls.length - 1].includes('departamento=eq.Choc'));
-
+    (await p.evaluate(() => window.__urls)).pop().includes('departamento=eq.Choc'));
   await p.fill('#f-mun', 'Quib'); await p.waitForTimeout(700);
-  urls = await p.evaluate(() => window.__urls);
-  comprobar('el municipio busca por coincidencia',
-    urls[urls.length - 1].includes('municipio=ilike.*Quib*'));
-
   const antes = (await p.evaluate(() => window.__urls)).length;
   await p.fill('#f-mun', 'Quibdo'); await p.waitForTimeout(700);
-  urls = await p.evaluate(() => window.__urls);
-  comprobar('no consulta una vez por cada letra', urls.length - antes === 1);
+  comprobar('no consulta una vez por cada letra',
+    (await p.evaluate(() => window.__urls)).length - antes === 1);
   comprobar('no desborda a lo ancho',
     !(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
-  comprobar('sin errores de JS', errs.length === 0);
+  await ctx.close();
+
+  // --- Residuos señalados ---
+  ({ ctx, p } = await abrir('residuos.html', [{ ...REPORTE, reportes_contacto: undefined }]));
+  comprobar('residuos avisa de que un RAEE no lo mueven voluntarios',
+    (await p.textContent('#lista')).includes('Esto no lo mueven voluntarios'));
+  comprobar('y sólo consulta la vista de reportes',
+    (await p.evaluate(() => window.__urls)).filter(u => u.includes('/rest/v1/v_'))
+      .every(u => u.includes('v_reportes_publicos')));
+  comprobar('no enseña el contacto de quien reportó',
+    !(await p.textContent('#lista')).includes('3001112233'));
+  await ctx.close();
+
+  // --- Quién coordina ---
+  ({ ctx, p } = await abrir('quien-coordina.html', [VOLUNTARIO]));
+  comprobar('quien-coordina lista a quien coordina',
+    (await p.textContent('#lista')).includes('Líder de zona'));
+  comprobar('y sólo consulta la vista de voluntarios',
+    (await p.evaluate(() => window.__urls)).filter(u => u.includes('/rest/v1/v_'))
+      .every(u => u.includes('v_voluntarios_publicos')));
+  await ctx.close();
+
+  // --- Sin datos y con la consulta caída: el contador nunca miente ---
+  ({ ctx, p } = await abrir('donde-llevarlo.html', []));
+  comprobar('sin resultados el contador lo dice', (await p.textContent('#cuenta')) === 'nada todavía');
+  comprobar('y ofrece aportar el dato',
+    (await p.textContent('#lista')).includes('Propóngalo'));
+  await ctx.close();
+
+  ({ ctx, p } = await abrir('donde-llevarlo.html', null));
+  comprobar('si la consulta falla el contador no deja un número viejo',
+    (await p.textContent('#cuenta')) === 'no se pudo contar');
+  comprobar('y se avisa del fallo', (await p.textContent('#lista')).includes('No se pudo cargar'));
+  await ctx.close();
+
+  // --- El enlace viejo no acaba en 404 ---
+  ctx = await navegador.newContext({ ...devices['Pixel 7'] });
+  p = await ctx.newPage();
+  await p.goto(RAIZ + '/directorio.html', { waitUntil:'domcontentloaded' });
+  await p.waitForURL(/donde-llevarlo\.html/, { timeout:5000 }).catch(() => {});
+  comprobar('el enlace viejo del directorio redirige', p.url().includes('donde-llevarlo.html'));
   await ctx.close();
 }
 

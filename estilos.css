@@ -417,3 +417,35 @@ tr:last-child th,tr:last-child td{border-bottom:none}
 /* Etiqueta del tipo: en negativo sobre la ficha teñida, para que se lea.
    Si usara `--t-bg` como fondo desaparecería dentro de su propia ficha. */
 .pill-tipo{background:var(--surface); border-color:var(--t); color:var(--t-ink)}
+
+/* =====================================================================
+   ENLACES A CADA PANTALLA DEL DIRECTORIO
+   Uno por tipo, con el color del tipo. Son enlaces de verdad a páginas
+   distintas, no pestañas: así se pueden compartir por separado y se
+   puede volver atrás.
+   ===================================================================== */
+.enlaces{display:flex; flex-direction:column; gap:.7rem; margin:1.2rem 0}
+.enlaces-t{
+  font-family:"IBM Plex Mono",monospace; font-size:.68rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3); font-weight:500; margin:0 0 .2rem;
+}
+.enlace-tipo{
+  display:flex; flex-direction:column; gap:.15rem;
+  background:var(--t-bg, var(--surface));
+  border:1px solid var(--t, var(--line-strong));
+  border-left-width:5px;
+  border-radius:var(--r); padding:.85rem 1rem; text-decoration:none;
+}
+.enlace-tipo:hover{border-color:var(--t, var(--deep)); text-decoration:none}
+.enlace-tipo-t{
+  font-family:Archivo,system-ui,sans-serif; font-weight:700; font-size:1rem;
+  color:var(--t-ink, var(--ink)); line-height:1.25;
+}
+.enlace-tipo-d{font-size:.85rem; color:var(--t-ink, var(--ink-2)); opacity:.9}
+
+/* Cuántos resultados hay. Nunca se queda en blanco: si la consulta falla
+   lo dice, en vez de dejar un número viejo al lado de una lista vacía. */
+.cuenta{
+  font-family:"IBM Plex Mono",monospace; font-size:.75rem; letter-spacing:.06em;
+  color:var(--ink-3); margin:.2rem 0 0;
+}

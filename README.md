@@ -27,7 +27,11 @@ el aviso de datos está completo y la moderación funciona.
 | Archivo | Para quién | Qué hace |
 |---|---|---|
 | `index.html` | Cualquiera | Los tres formularios |
-| `directorio.html` | Cualquiera | Puntos, reportes y voluntarios ya revisados |
+| `donde-llevarlo.html` | Cualquiera | Puntos donde reciben material, ya revisados |
+| `residuos.html` | Cualquiera | Puntos de acumulación reportados y revisados |
+| `quien-coordina.html` | Cualquiera | Voluntarios que autorizaron publicar su contacto |
+| `directorio.js` | — | La lógica de las tres, que sólo cambian en el tipo |
+| `directorio.html` | — | Desvío: antes eran pestañas, ahora son tres páginas |
 | `datos.html` | Cualquiera | Aviso de tratamiento de datos (Ley 1581 de 2012) |
 | `moderar.html` | El equipo | Bandeja de revisión. Muestra datos personales |
 | `estilos.css` | — | Estilos de las cuatro páginas |
@@ -83,6 +87,10 @@ Las listas desplegables son exactamente las de la hoja `Listas`.
   contraste de la norma (4,5:1, y 3:1 en titulares grandes) en modo claro y
   en modo oscuro. Se comprueba solo en `pruebas/navegador.mjs`, midiendo
   sobre la página ya pintada y no sobre la hoja de estilos.
+- **Una página por tipo, no pestañas.** Cada una tiene su dirección, su color
+  y su contador, así que se pueden compartir por separado y volver atrás. Con
+  pestañas, además, los contadores de las que no se habían visitado se
+  quedaban en blanco, porque sólo se cargaba la activa.
 - **Directorio sin mapa embebido.** Un mapa necesita descargar teselas de un
   servidor de terceros; una lista filtrable con enlace a Google Maps por punto
   da la misma información, carga con mala señal y no le cuenta a nadie de fuera

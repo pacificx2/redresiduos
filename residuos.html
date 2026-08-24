@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Residuos ya señalados · Red de Residuos</title>
+<meta name="description" content="Puntos de acumulación de residuos reportados por la comunidad tras el terremoto del 10 de agosto de 2026.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
+<link rel="stylesheet" href="estilos.css?v=4">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="mark">Red de Residuos<span>Reciclamores</span></div>
+    <div class="proto">Prototipo</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<a class="volver" href="index.html">← Volver al inicio</a>
+
+<div class="intro">
+  <p class="cinta t-reportes">Residuos señalados</p>
+  <h1>Residuos ya señalados</h1>
+  <p class="lede">Puntos de acumulación que alguien reportó y el equipo revisó.</p>
+  <p class="cuenta" id="cuenta">Cargando…</p>
+</div>
+
+<div class="note note-plain">
+  <h3>Antes de nada</h3>
+  <p style="margin:0">Esto es lo que la gente ha señalado y el equipo ha revisado. No incluye el nombre ni el teléfono de quien reportó: eso no se publica nunca.</p>
+</div>
+
+<div class="filtros">
+  <div class="field">
+    <label for="f-dep">Departamento</label>
+    <select id="f-dep" onchange="cargar()"><option value="">Todos</option></select>
+  </div>
+  <div class="field">
+    <label for="f-mun">Municipio</label>
+    <input type="text" id="f-mun" placeholder="Quibdó" autocomplete="off">
+  </div>
+</div>
+
+<div id="lista" class="lista"></div>
+
+<div class="enlaces">
+  <p class="enlaces-t">Las otras dos pantallas</p>
+  <div id="otros"></div>
+</div>
+
+<footer class="pie">
+  <a href="index.html">Reportar o inscribirme</a>
+  <a href="datos.html">Tratamiento de datos personales</a>
+  <p class="fine">Herramienta comunitaria de Reciclamores. No reemplaza a las
+  autoridades ni a la UNGRD.</p>
+</footer>
+
+</div>
+
+<script src="config.js?v=4"></script>
+<script>var TIPO = 'reportes';</script>
+<script src="directorio.js?v=4"></script>
+
+</body>
+</html>
