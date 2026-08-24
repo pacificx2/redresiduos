@@ -1,50 +1,54 @@
-# Backend · Google Apps Script
+# Backend · Supabase (PostgreSQL)
 
-`Codigo.gs` recibe los envíos del sitio y escribe una fila en la hoja que
-corresponda. Vive **dentro** de la hoja de cálculo, no en un servidor.
+## Por qué una base de datos y no una hoja de cálculo
 
-## Instalación (una sola vez)
+Se recogen teléfonos y ubicaciones de personas en zona de emergencia, con una
+casilla que decide si ese contacto se publica o no. En una hoja compartida, esa
+frontera depende de la disciplina de quien la usa. Aquí la impone el motor:
 
-1. **Subir el Excel a Drive y convertirlo.**
-   drive.google.com → Nuevo → Subida de archivo → `Red_Residuos_Emergencia_Reciclamores.xlsx`.
-   Abrirlo → *Archivo → Guardar como Hojas de cálculo de Google*.
-   Los nombres de las tres hojas deben quedar exactamente igual:
-   `1. Reportes de residuos`, `2. Líderes y voluntarios`, `3. Dónde llevarlos`.
+- **El público no toca ninguna tabla.** Sólo puede llamar a tres funciones que
+  insertan, y leer tres vistas.
+- **Nombres y teléfonos viven en tablas separadas** (`*_contacto`) sin ningún
+  acceso de lectura para el rol anónimo. No hay consulta, error de configuración
+  ni descuido que los exponga.
+- **Nada es público hasta que alguien lo revisa.** Las vistas sólo muestran filas
+  con `publicado = true`.
+- De los voluntarios sólo se publica quien marcó la casilla de autorización.
 
-2. **Pegar el código.**
-   En la hoja: *Extensiones → Apps Script*. Borrar lo que haya y pegar `Codigo.gs`.
-   Guardar (💾).
+## Instalación
 
-3. **Publicar.**
-   *Implementar → Nueva implementación → Tipo: Aplicación web*
-   - Ejecutar como: **Yo**
-   - Quién tiene acceso: **Cualquier usuario**
+1. Crear proyecto en [supabase.com](https://supabase.com) (región: elegir la más
+   cercana a Colombia, normalmente `us-east`).
+2. **SQL Editor** → pegar `schema.sql` entero → *Run*.
+3. Añadirse como moderador: descomentar la última línea del archivo con el correo
+   real, o ejecutarla aparte.
+4. Pasarle a Claude la **Project URL** y la **anon key** (*Settings → API*).
 
-   Google pedirá autorización y mostrará "Google no ha verificado esta aplicación":
-   *Configuración avanzada → Ir a (nombre) (no seguro)*. Es un aviso normal para
-   scripts propios sin verificar; el código es el de este repositorio.
+## Sobre la anon key
 
-4. **Copiar la URL** que termina en `/exec` y pasársela a Claude.
+Es pública por diseño: va dentro del HTML del sitio y cualquiera puede verla.
+No es una contraseña. Lo que se puede hacer con ella lo decide la seguridad a
+nivel de fila definida arriba: insertar por las tres funciones y leer las tres
+vistas. Nada más.
 
-## Comprobar que quedó bien
+La que **nunca** debe salir de Supabase es la `service_role key`, que se salta
+todas las reglas. No la pegues en ningún sitio, ni me la mandes.
 
-Abrir la URL `/exec` en el navegador. Debe responder:
+## Estructura
 
-```json
-{"ok":true,"servicio":"Red de Residuos","version":1}
-```
+| Tabla | Contenido | Lee el público |
+|---|---|---|
+| `reportes` | Punto, tipo, volumen, estado | Sólo si `publicado` |
+| `reportes_contacto` | Quién reporta, WhatsApp | **Nunca** |
+| `voluntarios` | Zona, rol, disponibilidad | Sólo si `publicado` |
+| `voluntarios_contacto` | Nombre, WhatsApp, correo | **Nunca** |
+| `puntos_acopio` | Directorio de gestores | Sólo si `publicado` |
+| `moderadores` | Correos con permiso de revisión | Nunca |
 
-## Cómo encuentra las columnas
+## Pendiente
 
-El script no usa posiciones fijas. Busca la fila que contiene `N°`, lee los
-encabezados y ordena los valores según ellos, comparando sin acentos, sin
-mayúsculas y sin el paréntesis aclaratorio. Así se pueden mover columnas o
-añadir notas encima sin romper nada.
-
-Lo único que **no** se debe cambiar: los nombres de las tres hojas y la celda `N°`.
-
-## Qué NO hace todavía
-
-- No modera: toda fila entra directamente con estado `Reportado` / `Por verificar`.
-- No valida que el teléfono exista ni que el punto sea real.
-- No limita la frecuencia de envíos. Si aparece spam, hay que añadir un control.
+- Pantalla de moderación para voluntarios no técnicos.
+- Almacenamiento de fotos (Supabase Storage) y reducción de la imagen en el
+  teléfono antes de subirla: en Chocó la conexión no aguanta fotos de 4 MB.
+- Límite de envíos por dispositivo. Hoy nada impide llenar la base de ruido.
+- Aviso de tratamiento de datos personales (Ley 1581 de 2012).
