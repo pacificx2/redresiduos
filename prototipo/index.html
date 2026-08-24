@@ -1,0 +1,622 @@
+<title>Red de Residuos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --paper:#EFF2EE; --surface:#FFFFFF; --surface-2:#E4E9E3;
+  --ink:#0F1C19; --ink-2:#3C4C47; --ink-3:#6B7B75;
+  --line:#CDD6D0; --line-strong:#A9B7B0;
+  --deep:#0E5C4A; --deep-ink:#0A4438;
+  --hivis:#C3D62B; --hivis-ink:#4A5406;
+  --danger:#A81E14; --danger-bg:#FBE9E7;
+  --warn:#8A5200; --warn-bg:#FCF0DC;
+  --ok:#10633A; --ok-bg:#E2F0E7;
+  --focus:#0E5C4A;
+  --r:10px; --maxw:44rem;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0B1513; --surface:#13201D; --surface-2:#1B2A26;
+    --ink-3:#83978F;
+    --line:#2A3A35; --line-strong:#3D504A;
+    --deep:#4FB398; --deep-ink:#8ED4C0;
+    --hivis:#C3D62B; --hivis-ink:#1A1F02;
+    --danger:#FF9E94; --danger-bg:#33130F;
+    --warn:#F0BE6B; --warn-bg:#2C1F08;
+    --ok:#79D3A2; --ok-bg:#0D2618;
+    --focus:#4FB398;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0B1513; --surface:#13201D; --surface-2:#1B2A26;
+  --ink:#E7EEE9; --ink-2:#B2C1BA; --ink-3:#83978F;
+  --line:#2A3A35; --line-strong:#3D504A;
+  --deep:#4FB398; --deep-ink:#8ED4C0;
+  --hivis:#C3D62B; --hivis-ink:#1A1F02;
+  --danger:#FF9E94; --danger-bg:#33130F;
+  --warn:#F0BE6B; --warn-bg:#2C1F08;
+  --ok:#79D3A2; --ok-bg:#0D2618;
+  --focus:#4FB398;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  font-size:16px; line-height:1.55; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 1rem 4rem}
+
+/* ---------- header ---------- */
+.top{
+  position:sticky; top:0; z-index:20; background:var(--deep-ink);
+  border-bottom:3px solid var(--hivis);
+}
+:root[data-theme="dark"] .top{background:#0A1A16}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .top{background:#0A1A16}}
+.top-in{
+  max-width:var(--maxw); margin:0 auto; padding:.7rem 1rem;
+  display:flex; align-items:center; gap:.7rem; flex-wrap:wrap;
+}
+.mark{
+  font-family:Archivo,system-ui,sans-serif; font-weight:700; font-size:1rem;
+  letter-spacing:.02em; color:#fff; line-height:1.2;
+}
+.mark span{display:block; font-size:.66rem; font-weight:500; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--hivis)}
+.proto{
+  margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:.62rem;
+  letter-spacing:.1em; text-transform:uppercase;
+  background:var(--hivis); color:var(--hivis-ink);
+  padding:.25rem .5rem; border-radius:3px; font-weight:500;
+}
+
+/* ---------- type ---------- */
+h1,h2,h3{font-family:Archivo,system-ui,sans-serif; text-wrap:balance; margin:0}
+h1{font-size:1.5rem; font-weight:700; line-height:1.2; letter-spacing:-.01em}
+h2{font-size:1.15rem; font-weight:700; line-height:1.25}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-3); font-weight:500;
+}
+.lede{color:var(--ink-2); font-size:.95rem}
+.fine{font-size:.82rem; color:var(--ink-3)}
+
+/* ---------- home ---------- */
+.intro{padding:1.6rem 0 1.1rem; display:flex; flex-direction:column; gap:.6rem}
+.cards{display:flex; flex-direction:column; gap:.7rem; margin-top:.4rem}
+.card{
+  display:flex; gap:.9rem; align-items:flex-start; width:100%; text-align:left;
+  background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--deep);
+  border-radius:var(--r); padding:1rem; cursor:pointer; color:inherit;
+  font:inherit; transition:border-color .12s, transform .12s;
+}
+.card:hover{border-color:var(--line-strong); border-left-color:var(--hivis)}
+.card:active{transform:translateY(1px)}
+.card-n{
+  font-family:"IBM Plex Mono",monospace; font-size:.8rem; font-weight:500;
+  color:var(--deep); flex:none; padding-top:.1rem;
+}
+.card h2{margin-bottom:.15rem}
+.card p{margin:0; font-size:.87rem; color:var(--ink-2)}
+
+/* ---------- notices ---------- */
+.note{
+  border-radius:var(--r); padding:.85rem 1rem; font-size:.87rem;
+  border:1px solid; display:flex; flex-direction:column; gap:.4rem;
+}
+.note h3{font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; font-family:"IBM Plex Mono",monospace; font-weight:500}
+.note ul{margin:.1rem 0 0; padding-left:1.1rem; display:flex; flex-direction:column; gap:.3rem}
+.note-warn{background:var(--warn-bg); border-color:var(--warn); color:var(--warn)}
+.note-danger{background:var(--danger-bg); border-color:var(--danger); color:var(--danger)}
+.note-ok{background:var(--ok-bg); border-color:var(--ok); color:var(--ok)}
+.note-plain{background:var(--surface-2); border-color:var(--line); color:var(--ink-2)}
+.note strong{color:inherit}
+
+/* ---------- forms ---------- */
+.view{display:none}
+.view.on{display:block}
+.back{
+  background:none; border:none; color:var(--deep); font:inherit; font-size:.85rem;
+  padding:.9rem 0 .3rem; cursor:pointer; display:flex; align-items:center; gap:.35rem;
+}
+form{display:flex; flex-direction:column; gap:1.05rem; margin-top:1.1rem}
+.field{display:flex; flex-direction:column; gap:.35rem}
+label{font-weight:600; font-size:.88rem; line-height:1.35}
+.hint{font-size:.78rem; color:var(--ink-3)}
+.req{color:var(--danger); font-weight:400}
+input[type=text],input[type=tel],input[type=email],input[type=date],select,textarea{
+  width:100%; padding:.7rem .75rem; font:inherit; font-size:1rem;
+  background:var(--surface); color:var(--ink);
+  border:1px solid var(--line-strong); border-radius:8px;
+}
+textarea{min-height:5rem; resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{
+  outline:3px solid var(--focus); outline-offset:2px;
+}
+.check{
+  display:flex; gap:.6rem; align-items:flex-start; background:var(--surface-2);
+  border:1px solid var(--line); border-radius:var(--r); padding:.8rem;
+}
+.check input{margin-top:.25rem; width:1.15rem; height:1.15rem; flex:none; accent-color:var(--deep)}
+.check label{font-weight:400; font-size:.85rem}
+
+/* GPS */
+.gps{display:flex; flex-direction:column; gap:.5rem}
+.gps-btn{
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+  background:var(--hivis); color:var(--hivis-ink); border:none; border-radius:8px;
+  padding:.95rem; font-family:Archivo,sans-serif; font-weight:700; font-size:.95rem;
+  cursor:pointer; letter-spacing:.01em;
+}
+.gps-out{
+  font-family:"IBM Plex Mono",monospace; font-size:.85rem; font-variant-numeric:tabular-nums;
+  background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:8px;
+  padding:.7rem; color:var(--ink-2); word-break:break-all;
+}
+.gps-out.set{border-style:solid; border-color:var(--ok); color:var(--ok); background:var(--ok-bg)}
+
+.submit{
+  background:var(--deep); color:#fff; border:none; border-radius:8px; padding:1rem;
+  font-family:Archivo,sans-serif; font-weight:700; font-size:1rem; cursor:pointer;
+}
+:root[data-theme="dark"] .submit{color:#06120F}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .submit{color:#06120F}}
+.submit:active{transform:translateY(1px)}
+
+/* result */
+.rowout{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  overflow-x:auto; margin-top:.9rem;
+}
+table{border-collapse:collapse; font-size:.8rem; width:100%}
+th,td{text-align:left; padding:.5rem .7rem; border-bottom:1px solid var(--line); vertical-align:top}
+th{font-family:"IBM Plex Mono",monospace; font-weight:500; font-size:.68rem; letter-spacing:.06em;
+   text-transform:uppercase; color:var(--ink-3); white-space:nowrap}
+td{color:var(--ink)}
+tr:last-child th,tr:last-child td{border-bottom:none}
+
+.hidden{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="mark">Red de Residuos<span>Reciclamores</span></div>
+    <div class="proto">Prototipo</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ HOME ============ -->
+<section id="home" class="view on">
+  <div class="intro">
+    <p class="eyebrow">Emergencia · Terremoto del 10 de agosto de 2026</p>
+    <h1>La ayuda llegó. Los empaques también.</h1>
+    <p class="lede">Un mapa vivo, hecho por la comunidad, para conectar tres cosas que hoy están
+      desconectadas: dónde se acumulan los residuos, quién puede coordinar en el territorio,
+      y a dónde hay que llevarlos.</p>
+    <p class="fine">Este sitio no reemplaza a las autoridades ni a la UNGRD.</p>
+  </div>
+
+  <div class="note note-warn" style="margin-bottom:1rem">
+    <h3>Seguridad primero</h3>
+    <ul>
+      <li>Nadie entra a estructuras afectadas o sin evaluación técnica. Ni por un reporte de aquí.</li>
+      <li>Residuos hospitalarios, medicamentos, pilas, escombros y electrónicos <strong>no los mueven
+        voluntarios</strong>: repórtelos y déjelos marcados.</li>
+      <li>Antes de convocar una jornada, avise al Consejo Municipal de Gestión del Riesgo.</li>
+    </ul>
+  </div>
+
+  <div class="cards">
+    <button class="card" onclick="go('f1')">
+      <span class="card-n">01</span>
+      <span>
+        <h2>Reportar residuos acumulados</h2>
+        <p>Vio un punto donde se están juntando empaques, plástico o cartón. Tarda menos de un minuto.</p>
+      </span>
+    </button>
+    <button class="card" onclick="go('f2')">
+      <span class="card-n">02</span>
+      <span>
+        <h2>Ofrecerme como voluntario o líder</h2>
+        <p>Puede coordinar en su zona, poner transporte, convocar gente o hacer el puente con recicladores.</p>
+      </span>
+    </button>
+    <button class="card" onclick="go('f3')">
+      <span class="card-n">03</span>
+      <span>
+        <h2>Aportar un punto donde reciben material</h2>
+        <p>Conoce una asociación de recicladores, un punto limpio o una bodega. Verifíquelo antes de enviarlo.</p>
+      </span>
+    </button>
+  </div>
+
+  <p class="fine" style="margin-top:1.4rem">
+    Los datos personales se tratan conforme a la Ley 1581 de 2012. Ningún contacto se publica
+    sin autorización expresa de su titular.
+  </p>
+</section>
+
+<!-- ============ 1 · REPORTE ============ -->
+<section id="f1" class="view">
+  <button class="back" onclick="go('home')">← Volver</button>
+  <p class="eyebrow">Hoja 1</p>
+  <h1>¿Dónde se están acumulando?</h1>
+  <p class="lede">Repórtelo solo si lo vio con sus propios ojos.</p>
+
+  <form onsubmit="return done(event,'f1')">
+    <div class="field gps">
+      <label>Ubicación exacta <span class="req">*</span></label>
+      <p class="hint">Párese lo más cerca posible del punto y pulse el botón.</p>
+      <button type="button" class="gps-btn" onclick="locate()">Usar mi ubicación actual</button>
+      <div class="gps-out" id="gpsout">Sin ubicación todavía</div>
+    </div>
+
+    <div class="field">
+      <label for="r-dep">Departamento <span class="req">*</span></label>
+      <select id="r-dep" required></select>
+    </div>
+
+    <div class="field">
+      <label for="r-mun">Municipio <span class="req">*</span></label>
+      <input type="text" id="r-mun" required placeholder="San José del Palmar">
+    </div>
+
+    <div class="field">
+      <label for="r-ref">Barrio, vereda o punto de referencia</label>
+      <input type="text" id="r-ref" placeholder="Cancha del barrio Las Palmas, al lado del acopio">
+    </div>
+
+    <div class="field">
+      <label for="r-tipo">Tipo de residuo predominante <span class="req">*</span></label>
+      <select id="r-tipo" required onchange="hazard()"></select>
+    </div>
+
+    <div class="note note-danger hidden" id="haz">
+      <h3>Esto no lo mueven voluntarios</h3>
+      <p style="margin:0">Este material exige un gestor autorizado. Repórtelo y déjelo señalizado,
+        pero <strong>no organice una jornada para recogerlo</strong>.</p>
+    </div>
+
+    <div class="field">
+      <label for="r-vol">Volumen aproximado</label>
+      <select id="r-vol"></select>
+    </div>
+
+    <div class="field">
+      <label for="r-riesgo">¿Hay riesgo sanitario? <span class="req">*</span></label>
+      <p class="hint">Malos olores, plaga, agua estancada, cercanía a viviendas.</p>
+      <select id="r-riesgo" required></select>
+    </div>
+
+    <div class="field">
+      <label for="r-foto">Foto del punto</label>
+      <p class="hint">Ayuda a calcular el volumen real y a evitar reportes duplicados.</p>
+      <input type="file" id="r-foto" accept="image/*" capture="environment">
+    </div>
+
+    <div class="field">
+      <label for="r-quien">Quién reporta</label>
+      <input type="text" id="r-quien" placeholder="Nombre o colectivo">
+    </div>
+
+    <div class="field">
+      <label for="r-wa">WhatsApp de contacto</label>
+      <input type="tel" id="r-wa" placeholder="300 000 0000">
+    </div>
+
+    <div class="check">
+      <input type="checkbox" id="r-cons">
+      <label for="r-cons">Autorizo que mi contacto se publique junto al reporte para que
+        me puedan escribir sobre este punto. Si no lo marca, su número solo lo verá el equipo de moderación.</label>
+    </div>
+
+    <div class="field">
+      <label for="r-notas">Notas</label>
+      <textarea id="r-notas" placeholder="Son bolsas de las donaciones. La comunidad ya las juntó en un punto, falta quién las recoja."></textarea>
+    </div>
+
+    <button type="submit" class="submit">Enviar reporte</button>
+  </form>
+</section>
+
+<!-- ============ 2 · VOLUNTARIOS ============ -->
+<section id="f2" class="view">
+  <button class="back" onclick="go('home')">← Volver</button>
+  <p class="eyebrow">Hoja 2</p>
+  <h1>¿Quién coordina en su territorio?</h1>
+  <p class="lede">Personas y colectivos dispuestos a organizar la recogida en su zona.</p>
+
+  <form onsubmit="return done(event,'f2')">
+    <div class="field">
+      <label for="v-nom">Nombre completo <span class="req">*</span></label>
+      <input type="text" id="v-nom" required>
+    </div>
+    <div class="field">
+      <label for="v-org">Organización o colectivo</label>
+      <input type="text" id="v-org" placeholder="Si aplica">
+    </div>
+    <div class="field">
+      <label for="v-dep">Departamento <span class="req">*</span></label>
+      <select id="v-dep" required></select>
+    </div>
+    <div class="field">
+      <label for="v-mun">Municipio <span class="req">*</span></label>
+      <input type="text" id="v-mun" required>
+    </div>
+    <div class="field">
+      <label for="v-zona">Zona o barrios que puede cubrir</label>
+      <input type="text" id="v-zona" placeholder="Casco urbano y vereda La Italia">
+    </div>
+    <div class="field">
+      <label for="v-rol">Rol que puede asumir <span class="req">*</span></label>
+      <select id="v-rol" required></select>
+    </div>
+    <div class="field">
+      <label for="v-disp">Disponibilidad</label>
+      <select id="v-disp"></select>
+    </div>
+    <div class="field">
+      <label for="v-veh">¿Tiene vehículo o forma de transportar material?</label>
+      <select id="v-veh"></select>
+    </div>
+    <div class="field">
+      <label for="v-wa">WhatsApp <span class="req">*</span></label>
+      <input type="tel" id="v-wa" required placeholder="300 000 0000">
+    </div>
+    <div class="field">
+      <label for="v-mail">Correo electrónico</label>
+      <input type="email" id="v-mail">
+    </div>
+    <div class="field">
+      <label for="v-red">Red social o enlace que permita verificarle</label>
+      <p class="hint">Sirve para confirmar que la persona existe antes de conectarla con una comunidad.</p>
+      <input type="text" id="v-red">
+    </div>
+
+    <div class="note note-warn">
+      <h3>Antes de inscribirse</h3>
+      <ul>
+        <li>No entrará a estructuras afectadas ni a zonas sin evaluación técnica.</li>
+        <li>No moverá residuos peligrosos, hospitalarios, electrónicos ni escombros.</li>
+        <li>Guantes, calzado cerrado, hidratación y nunca solo. Coordine siempre con líderes locales reconocidos.</li>
+      </ul>
+    </div>
+    <div class="check">
+      <input type="checkbox" id="v-seg" required>
+      <label for="v-seg"><strong>Leí y acepto las reglas de seguridad.</strong> <span class="req">*</span></label>
+    </div>
+    <div class="check">
+      <input type="checkbox" id="v-cons">
+      <label for="v-cons">Autorizo publicar mi contacto en el directorio público de la Red.
+        Sin esta casilla, sus datos solo los ve el equipo de moderación.</label>
+    </div>
+
+    <button type="submit" class="submit">Inscribirme</button>
+  </form>
+</section>
+
+<!-- ============ 3 · DIRECTORIO ============ -->
+<section id="f3" class="view">
+  <button class="back" onclick="go('home')">← Volver</button>
+  <p class="eyebrow">Hoja 3</p>
+  <h1>¿A dónde llevar el material?</h1>
+  <p class="lede">Asociaciones de recicladores, puntos limpios y gestores.</p>
+
+  <div class="note note-plain" style="margin-top:1rem">
+    <p style="margin:0">Antes de enviar este dato, <strong>llame y confirme</strong>. Un teléfono que
+      no contesta le hace perder el viaje a un voluntario con un camión cargado.</p>
+  </div>
+
+  <form onsubmit="return done(event,'f3')">
+    <div class="field">
+      <label for="d-nom">Nombre del punto u organización <span class="req">*</span></label>
+      <input type="text" id="d-nom" required placeholder="Asociación de Recicladores de Quibdó">
+    </div>
+    <div class="field">
+      <label for="d-tipo">Tipo <span class="req">*</span></label>
+      <select id="d-tipo" required></select>
+    </div>
+    <div class="field">
+      <label for="d-dep">Departamento <span class="req">*</span></label>
+      <select id="d-dep" required></select>
+    </div>
+    <div class="field">
+      <label for="d-mun">Municipio <span class="req">*</span></label>
+      <input type="text" id="d-mun" required>
+    </div>
+    <div class="field">
+      <label for="d-dir">Dirección</label>
+      <input type="text" id="d-dir">
+    </div>
+    <div class="field">
+      <label for="d-si">Materiales que SÍ reciben <span class="req">*</span></label>
+      <input type="text" id="d-si" required placeholder="PET, cartón, papel archivo, chatarra">
+    </div>
+    <div class="field">
+      <label for="d-no">Materiales que NO reciben</label>
+      <input type="text" id="d-no" placeholder="Icopor, vidrio roto, residuos peligrosos">
+    </div>
+    <div class="field">
+      <label for="d-hor">Horario de atención</label>
+      <input type="text" id="d-hor" placeholder="Lunes a sábado, 7:00 a.m. a 4:00 p.m.">
+    </div>
+    <div class="field">
+      <label for="d-dom">¿Recogen a domicilio?</label>
+      <select id="d-dom"></select>
+    </div>
+    <div class="field">
+      <label for="d-per">Persona de contacto</label>
+      <input type="text" id="d-per">
+    </div>
+    <div class="field">
+      <label for="d-tel">Teléfono o WhatsApp <span class="req">*</span></label>
+      <input type="tel" id="d-tel" required>
+    </div>
+    <div class="field">
+      <label for="d-como">¿Cómo debe llegar el material?</label>
+      <input type="text" id="d-como" placeholder="Limpio, seco y separado. El cartón, aplanado.">
+    </div>
+    <div class="check">
+      <input type="checkbox" id="d-lla" required>
+      <label for="d-lla"><strong>Llamé y confirmé que este punto sigue operando.</strong> <span class="req">*</span></label>
+    </div>
+
+    <button type="submit" class="submit">Proponer al directorio</button>
+  </form>
+</section>
+
+<!-- ============ DONE ============ -->
+<section id="done" class="view">
+  <button class="back" onclick="go('home')">← Volver al inicio</button>
+  <div class="note note-ok" style="margin-top:1rem">
+    <h3>Prototipo</h3>
+    <p style="margin:0">Nada se guardó. En la versión real, esta fila se escribiría en su hoja de
+      cálculo y quedaría en estado <strong>Reportado / Por verificar</strong> hasta que
+      moderación la revise.</p>
+  </div>
+  <h2 style="margin-top:1.4rem">Así llegaría a su Excel</h2>
+  <div class="rowout"><table id="out"></table></div>
+</section>
+
+</div>
+
+<script>
+var LISTAS = {
+  dep:["Chocó","Risaralda","Valle del Cauca","Caldas","Quindío","Antioquia","Cauca","Tolima",
+       "Cundinamarca","Bogotá D.C.","Nariño","Huila","Otro"],
+  tipo:["Plástico (botellas, empaques)","Icopor","Cartón y papel","Bolsas y plástico film","Vidrio",
+        "Latas y metal","Ropa y textiles","Orgánicos / alimentos","Mezclado sin separar",
+        "RAEE (electrónicos)","Peligrosos (pilas, medicamentos)","Escombros","Otro"],
+  vol:["Menos de 1 m³ (unas pocas bolsas)","1 a 5 m³ (un camión pequeño)",
+       "5 a 20 m³ (un camión grande)","Más de 20 m³","No sé calcularlo"],
+  sino:["Sí","No","No sé"],
+  rol:["Líder de zona","Voluntario de campo","Transporte / vehículo","Bodega o acopio temporal",
+       "Comunicación y convocatoria","Contacto institucional","Otro"],
+  gestor:["Asociación de recicladores","Reciclador de oficio independiente","Punto limpio / ECA",
+          "Bodega de reciclaje","Gestor de RAEE","Compostaje","Empresa de aseo del municipio","Otro"],
+  disp:["Tiempo completo","Medio tiempo","Solo fines de semana","Por jornadas puntuales","Solo apoyo remoto"]
+};
+var PELIGROSOS = ["RAEE (electrónicos)","Peligrosos (pilas, medicamentos)","Escombros"];
+
+function fill(id, list, placeholder){
+  var el = document.getElementById(id); if(!el) return;
+  var html = '<option value="">' + (placeholder || 'Seleccione…') + '</option>';
+  for (var i=0;i<list.length;i++){ html += '<option>' + list[i] + '</option>'; }
+  el.innerHTML = html;
+}
+fill('r-dep',LISTAS.dep); fill('r-tipo',LISTAS.tipo); fill('r-vol',LISTAS.vol);
+fill('r-riesgo',LISTAS.sino);
+fill('v-dep',LISTAS.dep); fill('v-rol',LISTAS.rol); fill('v-disp',LISTAS.disp);
+fill('v-veh',LISTAS.sino);
+fill('d-dep',LISTAS.dep); fill('d-tipo',LISTAS.gestor); fill('d-dom',LISTAS.sino);
+
+function go(id){
+  var v = document.querySelectorAll('.view');
+  for (var i=0;i<v.length;i++){ v[i].classList.remove('on'); }
+  document.getElementById(id).classList.add('on');
+  window.scrollTo(0,0);
+}
+
+function hazard(){
+  var t = document.getElementById('r-tipo').value;
+  var box = document.getElementById('haz');
+  if (PELIGROSOS.indexOf(t) > -1) box.classList.remove('hidden');
+  else box.classList.add('hidden');
+}
+
+var coords = null;
+function locate(){
+  var out = document.getElementById('gpsout');
+  if (!navigator.geolocation){
+    out.textContent = 'Este teléfono no permite ubicación automática. Escriba la referencia lo más precisa que pueda.';
+    return;
+  }
+  out.textContent = 'Buscando señal…';
+  navigator.geolocation.getCurrentPosition(function(p){
+    coords = { lat:p.coords.latitude, lon:p.coords.longitude, acc:Math.round(p.coords.accuracy) };
+    out.textContent = coords.lat.toFixed(6) + ', ' + coords.lon.toFixed(6) + '  ·  ±' + coords.acc + ' m';
+    out.classList.add('set');
+  }, function(){
+    out.textContent = 'No se pudo obtener la ubicación. Revise los permisos, o describa el punto de referencia con el mayor detalle posible.';
+    out.classList.remove('set');
+  }, { enableHighAccuracy:true, timeout:12000 });
+}
+
+function val(id){ var e = document.getElementById(id); return e && e.value ? e.value : '—'; }
+function chk(id){ return document.getElementById(id).checked ? 'Sí' : 'No'; }
+
+function done(ev, which){
+  ev.preventDefault();
+  var hoy = new Date().toLocaleDateString('es-CO');
+  var rows;
+  if (which === 'f1'){
+    var foto = document.getElementById('r-foto');
+    rows = [
+      ['Fecha del reporte', hoy],
+      ['Departamento', val('r-dep')],
+      ['Municipio', val('r-mun')],
+      ['Barrio o referencia', val('r-ref')],
+      ['Enlace de ubicación', coords ? 'https://maps.google.com/?q=' + coords.lat.toFixed(6) + ',' + coords.lon.toFixed(6) : '—'],
+      ['Tipo de residuo', val('r-tipo')],
+      ['Volumen aproximado', val('r-vol')],
+      ['¿Riesgo sanitario?', val('r-riesgo')],
+      ['¿Necesita gestor especializado?', PELIGROSOS.indexOf(document.getElementById('r-tipo').value) > -1 ? 'Sí' : 'No'],
+      ['Quién reporta', val('r-quien')],
+      ['Contacto (WhatsApp)', val('r-wa')],
+      ['¿Autoriza publicar su contacto?', chk('r-cons')],
+      ['Enlace a foto', foto.files.length ? foto.files[0].name + ' → se subiría a Drive' : '—'],
+      ['ESTADO', 'Reportado'],
+      ['Notas', val('r-notas')]
+    ];
+  } else if (which === 'f2'){
+    rows = [
+      ['Nombre completo', val('v-nom')],
+      ['Organización o colectivo', val('v-org')],
+      ['Departamento', val('v-dep')],
+      ['Municipio', val('v-mun')],
+      ['Zona que puede cubrir', val('v-zona')],
+      ['Rol que puede asumir', val('v-rol')],
+      ['Disponibilidad', val('v-disp')],
+      ['¿Tiene vehículo?', val('v-veh')],
+      ['WhatsApp', val('v-wa')],
+      ['Correo electrónico', val('v-mail')],
+      ['Enlace de verificación', val('v-red')],
+      ['¿Autoriza publicar su contacto?', chk('v-cons')],
+      ['VERIFICACIÓN', 'Por verificar'],
+      ['Verificado por', '—'],
+      ['Notas', 'Aceptó las reglas de seguridad el ' + hoy]
+    ];
+  } else {
+    rows = [
+      ['Nombre del punto', val('d-nom')],
+      ['Tipo', val('d-tipo')],
+      ['Departamento', val('d-dep')],
+      ['Municipio', val('d-mun')],
+      ['Dirección', val('d-dir')],
+      ['Materiales que SÍ reciben', val('d-si')],
+      ['Materiales que NO reciben', val('d-no')],
+      ['Horario de atención', val('d-hor')],
+      ['¿Recogen a domicilio?', val('d-dom')],
+      ['Persona de contacto', val('d-per')],
+      ['Teléfono o WhatsApp', val('d-tel')],
+      ['¿Cómo debe llegar el material?', val('d-como')],
+      ['VERIFICACIÓN', 'Por verificar'],
+      ['Fecha de verificación', hoy],
+      ['Notas', '—']
+    ];
+  }
+  var html = '';
+  for (var i=0;i<rows.length;i++){
+    html += '<tr><th>' + rows[i][0] + '</th><td>' + rows[i][1] + '</td></tr>';
+  }
+  document.getElementById('out').innerHTML = html;
+  go('done');
+  return false;
+}
+</script>
