@@ -471,22 +471,24 @@ tr:last-child th,tr:last-child td{border-bottom:none}
   </form>
 </section>
 
-<!-- ============ DONE ============ -->
+<!-- ============ RESULTADO ============ -->
 <section id="done" class="view">
-  <button class="back" onclick="go('home')">← Volver al inicio</button>
-  <div class="note note-ok" style="margin-top:1rem">
-    <h3>Prototipo</h3>
-    <p style="margin:0">Nada se guardó. En la versión real, esta fila se escribiría en su hoja de
-      cálculo y quedaría en estado <strong>Reportado / Por verificar</strong> hasta que
-      moderación la revise.</p>
-  </div>
-  <h2 style="margin-top:1.4rem">Así llegaría a su Excel</h2>
-  <div class="rowout"><table id="out"></table></div>
+  <div id="resultado"></div>
+  <button class="back" onclick="go('home')" style="margin-top:1rem">← Volver al inicio</button>
 </section>
 
 </div>
 
 <script>
+/* =====================================================================
+   Conexión con Supabase.
+   Estas dos constantes son públicas por diseño: viajan dentro de la página.
+   Lo que se puede hacer con ellas lo limitan las reglas del esquema:
+   llamar a tres funciones de inserción y leer tres vistas ya filtradas.
+   ===================================================================== */
+var SUPABASE_URL = 'https://wcszdshiklioybirgeuh.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indjc3pkc2hpa2xpb3liaXJnZXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1ODE5NjIsImV4cCI6MjEwMzE1Nzk2Mn0.6nX4m8sRYGs8-tDOYVrvr0emzQlXMXxaZDQ1JG248vs';
+
 var LISTAS = {
   dep:["Chocó","Risaralda","Valle del Cauca","Caldas","Quindío","Antioquia","Cauca","Tolima",
        "Cundinamarca","Bogotá D.C.","Nariño","Huila","Otro"],
@@ -503,10 +505,11 @@ var LISTAS = {
   disp:["Tiempo completo","Medio tiempo","Solo fines de semana","Por jornadas puntuales","Solo apoyo remoto"]
 };
 var PELIGROSOS = ["RAEE (electrónicos)","Peligrosos (pilas, medicamentos)","Escombros"];
+var PENDIENTE = 'redresiduos.pendiente';
 
-function fill(id, list, placeholder){
+function fill(id, list){
   var el = document.getElementById(id); if(!el) return;
-  var html = '<option value="">' + (placeholder || 'Seleccione…') + '</option>';
+  var html = '<option value="">Seleccione…</option>';
   for (var i=0;i<list.length;i++){ html += '<option>' + list[i] + '</option>'; }
   el.innerHTML = html;
 }
@@ -525,16 +528,15 @@ function go(id){
 
 function hazard(){
   var t = document.getElementById('r-tipo').value;
-  var box = document.getElementById('haz');
-  if (PELIGROSOS.indexOf(t) > -1) box.classList.remove('hidden');
-  else box.classList.add('hidden');
+  document.getElementById('haz').classList.toggle('hidden', PELIGROSOS.indexOf(t) < 0);
 }
 
+/* ---------- ubicación ---------- */
 var coords = null;
 function locate(){
   var out = document.getElementById('gpsout');
   if (!navigator.geolocation){
-    out.textContent = 'Este teléfono no permite ubicación automática. Escriba la referencia lo más precisa que pueda.';
+    out.textContent = 'Este teléfono no permite ubicación automática. Describa el punto de referencia con el mayor detalle posible.';
     return;
   }
   out.textContent = 'Buscando señal…';
@@ -548,75 +550,218 @@ function locate(){
   }, { enableHighAccuracy:true, timeout:12000 });
 }
 
-function val(id){ var e = document.getElementById(id); return e && e.value ? e.value : '—'; }
-function chk(id){ return document.getElementById(id).checked ? 'Sí' : 'No'; }
+/* ---------- foto ----------
+   Se reduce en el teléfono antes de subirla. Una foto de cámara pesa varios MB
+   y en zonas con mala conexión sencillamente no llega. */
+function reducirFoto(archivo){
+  return new Promise(function(resolve, reject){
+    var lector = new FileReader();
+    lector.onerror = function(){ reject(new Error('No se pudo leer la foto')); };
+    lector.onload = function(){
+      var img = new Image();
+      img.onerror = function(){ reject(new Error('Formato de imagen no reconocido')); };
+      img.onload = function(){
+        var max = 1280;
+        var escala = Math.min(1, max / Math.max(img.width, img.height));
+        var lienzo = document.createElement('canvas');
+        lienzo.width  = Math.round(img.width  * escala);
+        lienzo.height = Math.round(img.height * escala);
+        lienzo.getContext('2d').drawImage(img, 0, 0, lienzo.width, lienzo.height);
+        lienzo.toBlob(function(blob){
+          blob ? resolve(blob) : reject(new Error('No se pudo comprimir la foto'));
+        }, 'image/jpeg', 0.7);
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(archivo);
+  });
+}
 
-function done(ev, which){
+function subirFoto(blob){
+  var ruta = 'reportes/' + Date.now() + '-' + Math.random().toString(36).slice(2,10) + '.jpg';
+  return fetch(SUPABASE_URL + '/storage/v1/object/fotos/' + ruta, {
+    method:'POST',
+    headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Content-Type':'image/jpeg' },
+    body: blob
+  }).then(function(r){
+    if (!r.ok) throw new Error('foto');
+    return SUPABASE_URL + '/storage/v1/object/public/fotos/' + ruta;
+  });
+}
+
+/* ---------- envío ---------- */
+function llamar(funcion, datos){
+  return fetch(SUPABASE_URL + '/rest/v1/rpc/' + funcion, {
+    method:'POST',
+    headers:{
+      'apikey':SUPABASE_KEY,
+      'Authorization':'Bearer ' + SUPABASE_KEY,
+      'Content-Type':'application/json'
+    },
+    body: JSON.stringify({ p: datos })
+  }).then(function(r){
+    return r.text().then(function(texto){
+      if (!r.ok) throw new Error(texto || ('HTTP ' + r.status));
+      try { return JSON.parse(texto); } catch (e) { return texto; }
+    });
+  });
+}
+
+function val(id){ var e = document.getElementById(id); return e ? e.value : ''; }
+function chk(id){ return document.getElementById(id).checked; }
+
+function recoger(cual){
+  if (cual === 'f1'){
+    return { funcion:'crear_reporte', datos:{
+      departamento: val('r-dep'),
+      municipio: val('r-mun'),
+      referencia: val('r-ref'),
+      lat: coords ? coords.lat : null,
+      lon: coords ? coords.lon : null,
+      precision_m: coords ? coords.acc : null,
+      tipo_residuo: val('r-tipo'),
+      volumen: val('r-vol'),
+      riesgo_sanitario: val('r-riesgo'),
+      necesita_gestor: PELIGROSOS.indexOf(val('r-tipo')) > -1,
+      notas: val('r-notas'),
+      quien_reporta: val('r-quien'),
+      whatsapp: val('r-wa'),
+      publicar_contacto: chk('r-cons')
+    }};
+  }
+  if (cual === 'f2'){
+    return { funcion:'crear_voluntario', datos:{
+      nombre: val('v-nom'),
+      organizacion: val('v-org'),
+      departamento: val('v-dep'),
+      municipio: val('v-mun'),
+      zona: val('v-zona'),
+      rol: val('v-rol'),
+      disponibilidad: val('v-disp'),
+      tiene_vehiculo: val('v-veh'),
+      whatsapp: val('v-wa'),
+      correo: val('v-mail'),
+      enlace_verificacion: val('v-red'),
+      acepto_seguridad: chk('v-seg'),
+      publicar_contacto: chk('v-cons')
+    }};
+  }
+  return { funcion:'proponer_punto', datos:{
+    nombre: val('d-nom'),
+    tipo: val('d-tipo'),
+    departamento: val('d-dep'),
+    municipio: val('d-mun'),
+    direccion: val('d-dir'),
+    materiales_si: val('d-si'),
+    materiales_no: val('d-no'),
+    horario: val('d-hor'),
+    recoge_domicilio: val('d-dom'),
+    persona_contacto: val('d-per'),
+    telefono: val('d-tel'),
+    como_llega_material: val('d-como'),
+    confirmado_por_llamada: chk('d-lla')
+  }};
+}
+
+function done(ev, cual){
   ev.preventDefault();
-  var hoy = new Date().toLocaleDateString('es-CO');
-  var rows;
-  if (which === 'f1'){
-    var foto = document.getElementById('r-foto');
-    rows = [
-      ['Fecha del reporte', hoy],
-      ['Departamento', val('r-dep')],
-      ['Municipio', val('r-mun')],
-      ['Barrio o referencia', val('r-ref')],
-      ['Enlace de ubicación', coords ? 'https://maps.google.com/?q=' + coords.lat.toFixed(6) + ',' + coords.lon.toFixed(6) : '—'],
-      ['Tipo de residuo', val('r-tipo')],
-      ['Volumen aproximado', val('r-vol')],
-      ['¿Riesgo sanitario?', val('r-riesgo')],
-      ['¿Necesita gestor especializado?', PELIGROSOS.indexOf(document.getElementById('r-tipo').value) > -1 ? 'Sí' : 'No'],
-      ['Quién reporta', val('r-quien')],
-      ['Contacto (WhatsApp)', val('r-wa')],
-      ['¿Autoriza publicar su contacto?', chk('r-cons')],
-      ['Enlace a foto', foto.files.length ? foto.files[0].name + ' → se subiría a Drive' : '—'],
-      ['ESTADO', 'Reportado'],
-      ['Notas', val('r-notas')]
-    ];
-  } else if (which === 'f2'){
-    rows = [
-      ['Nombre completo', val('v-nom')],
-      ['Organización o colectivo', val('v-org')],
-      ['Departamento', val('v-dep')],
-      ['Municipio', val('v-mun')],
-      ['Zona que puede cubrir', val('v-zona')],
-      ['Rol que puede asumir', val('v-rol')],
-      ['Disponibilidad', val('v-disp')],
-      ['¿Tiene vehículo?', val('v-veh')],
-      ['WhatsApp', val('v-wa')],
-      ['Correo electrónico', val('v-mail')],
-      ['Enlace de verificación', val('v-red')],
-      ['¿Autoriza publicar su contacto?', chk('v-cons')],
-      ['VERIFICACIÓN', 'Por verificar'],
-      ['Verificado por', '—'],
-      ['Notas', 'Aceptó las reglas de seguridad el ' + hoy]
-    ];
-  } else {
-    rows = [
-      ['Nombre del punto', val('d-nom')],
-      ['Tipo', val('d-tipo')],
-      ['Departamento', val('d-dep')],
-      ['Municipio', val('d-mun')],
-      ['Dirección', val('d-dir')],
-      ['Materiales que SÍ reciben', val('d-si')],
-      ['Materiales que NO reciben', val('d-no')],
-      ['Horario de atención', val('d-hor')],
-      ['¿Recogen a domicilio?', val('d-dom')],
-      ['Persona de contacto', val('d-per')],
-      ['Teléfono o WhatsApp', val('d-tel')],
-      ['¿Cómo debe llegar el material?', val('d-como')],
-      ['VERIFICACIÓN', 'Por verificar'],
-      ['Fecha de verificación', hoy],
-      ['Notas', '—']
-    ];
-  }
-  var html = '';
-  for (var i=0;i<rows.length;i++){
-    html += '<tr><th>' + rows[i][0] + '</th><td>' + rows[i][1] + '</td></tr>';
-  }
-  document.getElementById('out').innerHTML = html;
-  go('done');
+  var boton = ev.target.querySelector('button[type=submit]');
+  var textoOriginal = boton.textContent;
+  boton.disabled = true;
+  boton.textContent = 'Enviando…';
+
+  var envio = recoger(cual);
+  var foto = cual === 'f1' ? document.getElementById('r-foto') : null;
+
+  var preparar = (foto && foto.files.length)
+    ? reducirFoto(foto.files[0]).then(subirFoto).then(function(url){
+        envio.datos.foto_url = url;
+      }).catch(function(){
+        // Perder la foto no debe costar el reporte entero: se envía sin ella.
+        envio.datos.foto_url = null;
+      })
+    : Promise.resolve();
+
+  preparar
+    .then(function(){ return llamar(envio.funcion, envio.datos); })
+    .then(function(id){
+      localStorage.removeItem(PENDIENTE);
+      mostrarExito(cual, id);
+    })
+    .catch(function(err){
+      guardarPendiente(envio);
+      mostrarError(err);
+    })
+    .then(function(){
+      boton.disabled = false;
+      boton.textContent = textoOriginal;
+    });
+
   return false;
 }
+
+function mostrarExito(cual, id){
+  var titulo, cuerpo;
+  if (cual === 'f1'){
+    titulo = 'Reporte recibido';
+    cuerpo = 'Queda en estado <strong>Reportado</strong>. Aparecerá en el mapa público cuando el equipo lo revise.';
+  } else if (cual === 'f2'){
+    titulo = 'Inscripción recibida';
+    cuerpo = 'Alguien del equipo le escribirá para confirmar. Sus datos <strong>no son públicos</strong> mientras tanto.';
+  } else {
+    titulo = 'Punto propuesto';
+    cuerpo = 'Se verificará antes de publicarlo en el directorio.';
+  }
+  document.getElementById('resultado').innerHTML =
+    '<div class="note note-ok"><h3>' + titulo + '</h3><p style="margin:0">' + cuerpo + '</p></div>' +
+    '<p class="fine" style="margin-top:.9rem">Referencia: <code>' + String(id).replace(/"/g,'') + '</code></p>';
+  go('done');
+}
+
+function mostrarError(err){
+  document.getElementById('resultado').innerHTML =
+    '<div class="note note-danger"><h3>No se pudo enviar</h3>' +
+    '<p style="margin:0">Su reporte <strong>no llegó</strong>. Quedó guardado en este teléfono: ' +
+    'vuelva a abrir esta página con señal y podrá reintentarlo desde el inicio.</p></div>' +
+    '<p class="fine" style="margin-top:.9rem">Detalle técnico: ' +
+    String(err && err.message ? err.message : err).slice(0,300) + '</p>';
+  go('done');
+}
+
+/* ---------- lo que no se pudo enviar ---------- */
+function guardarPendiente(envio){
+  try { localStorage.setItem(PENDIENTE, JSON.stringify(envio)); } catch (e) {}
+}
+
+function revisarPendiente(){
+  var crudo;
+  try { crudo = localStorage.getItem(PENDIENTE); } catch (e) { return; }
+  if (!crudo) return;
+  var aviso = document.createElement('div');
+  aviso.className = 'note note-warn';
+  aviso.style.margin = '0 0 1rem';
+  aviso.innerHTML = '<h3>Tiene un envío sin mandar</h3>' +
+    '<p style="margin:0">Se guardó en este teléfono porque no había conexión.</p>';
+  var boton = document.createElement('button');
+  boton.className = 'gps-btn';
+  boton.type = 'button';
+  boton.textContent = 'Reintentar ahora';
+  boton.onclick = function(){
+    boton.disabled = true; boton.textContent = 'Enviando…';
+    var envio = JSON.parse(crudo);
+    llamar(envio.funcion, envio.datos).then(function(id){
+      localStorage.removeItem(PENDIENTE);
+      aviso.remove();
+      mostrarExito(envio.funcion === 'crear_reporte' ? 'f1'
+                 : envio.funcion === 'crear_voluntario' ? 'f2' : 'f3', id);
+    }).catch(function(){
+      boton.disabled = false;
+      boton.textContent = 'Sigue sin conexión. Reintentar';
+    });
+  };
+  aviso.appendChild(boton);
+  var home = document.getElementById('home');
+  home.insertBefore(aviso, home.firstChild);
+}
+revisarPendiente();
 </script>

@@ -7,10 +7,13 @@ llevar el material**.
 
 No reemplaza a las autoridades ni a la UNGRD.
 
-## Estado: PROTOTIPO
+## Estado
 
-**El sitio todavía no guarda nada.** Quien llene un formulario hoy no está
-reportando nada a nadie. No difundir el enlace hasta que el backend esté conectado.
+Los tres formularios **ya escriben en la base de datos** (Supabase).
+
+Todavía **no difundir el enlace**: falta la pantalla de moderación, el aviso de
+tratamiento de datos personales y el mapa público. Nada de lo que se envía es
+visible para nadie hasta que exista esa pantalla.
 
 ## Publicación
 
@@ -41,10 +44,11 @@ Las listas desplegables son exactamente las de la hoja `Listas`.
 
 ## Pendiente antes de difundir
 
-1. Backend: escribir en la hoja de cálculo (Google Apps Script) y subir fotos a Drive.
+1. **Pantalla de moderación** para voluntarios no técnicos. Sin ella nadie puede
+   revisar lo que entra, y sin revisión nada se publica.
 2. Aviso de tratamiento de datos personales (Ley 1581 de 2012).
-3. Moderación: quién revisa y con qué frecuencia.
-4. Vista pública de solo lectura: mapa de puntos y directorio.
+3. Vista pública: mapa de puntos reportados y directorio consultable.
+4. Límite de envíos. Hoy nada impide llenar la base de ruido.
 5. Definir quién actúa sobre los reportes.
 
 ## Privacidad
