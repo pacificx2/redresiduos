@@ -44,7 +44,18 @@ dirección.
 
 ## Publicación
 
-GitHub Pages desde la rama `main`, servida desde la raíz. No hay compilación ni
+GitHub Pages desde la rama `main`, servida desde la raíz, en
+`residuos.reciclamores.org`.
+
+El archivo `CNAME` de la raíz es lo que ata el sitio a ese dominio. **No se
+puede borrar ni renombrar**: si desaparece, GitHub vuelve a servir en la
+dirección `github.io` y el dominio deja de funcionar. Va antes que cualquier
+otra cosa en la raíz por eso mismo, para que se vea.
+
+El orden de puesta en marcha importa: primero el registro CNAME en el DNS,
+después este archivo. Al revés, GitHub deja de servir en la dirección vieja y
+redirige a un dominio que aún no resuelve, así que el sitio queda inaccesible
+por las dos hasta que propague. No hay compilación ni
 paso de construcción. La única dependencia externa son las tipografías de
 Google Fonts; si no cargan, el sitio se ve con la tipografía del sistema y
 funciona igual.
