@@ -111,7 +111,8 @@ function fichaPunto(p){
       filaHtml('Cómo llegar', enlaceMapa(p.lat, p.lon)) +
       fila('Recoge a domicilio', p.recoge_domicilio) +
       fila('Preguntar por', p.persona_contacto) +
-      filaHtml('Teléfono', enlaceWhatsapp(p.telefono)) +
+      filaHtml('Teléfono del punto', enlaceWhatsapp(p.telefono)) +
+      filaHtml('Reciclador', enlaceWhatsapp(p.telefono_reciclador)) +
       fila('Cómo debe llegar el material', p.como_llega_material) +
       fila('Última verificación', p.fecha_verificacion) +
     '</dl>' +

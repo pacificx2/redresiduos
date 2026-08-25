@@ -26,9 +26,13 @@ create type tipo_residuo as enum (
   'Orgánicos / alimentos','Mezclado sin separar','RAEE (electrónicos)',
   'Peligrosos (pilas, medicamentos)','Escombros','Otro');
 
+-- En kilos y no en metros cúbicos: nadie estima un volumen mirando un
+-- montón en la calle. Cada tramo lleva un anclaje concreto, porque el kilo
+-- tampoco se estima a ojo sin una referencia.
 create type volumen as enum (
-  'Menos de 1 m³ (unas pocas bolsas)','1 a 5 m³ (un camión pequeño)',
-  '5 a 20 m³ (un camión grande)','Más de 20 m³','No sé calcularlo');
+  'Menos de 20 kg (unas pocas bolsas)','20 a 100 kg (llena una moto o un carrito)',
+  '100 a 500 kg (una camioneta llena)','Más de 500 kg (hace falta un camión)',
+  'No sé calcularlo');
 
 create type sino as enum ('Sí','No','No sé');
 
@@ -193,6 +197,12 @@ create table public.puntos_acopio (
   recoge_domicilio    sino,
   persona_contacto    text check (length(persona_contacto) <= 160),
   telefono            text check (length(telefono) <= 40),
+  -- El reciclador que trabaja en el punto: sí es público, llegar hasta él
+  -- es justo para lo que sirve el directorio.
+  telefono_reciclador text check (length(telefono_reciclador) <= 40),
+  -- Quien rellenó el formulario: NO se publica, igual que en los reportes.
+  -- No sale por ninguna vista; el filtro es la lista de columnas de abajo.
+  telefono_registra   text check (length(telefono_registra) <= 40),
   como_llega_material text check (length(como_llega_material) <= 600),
   confirmado_por_llamada boolean not null default false,
   verificacion        verificacion not null default 'Por verificar',
@@ -254,7 +264,8 @@ create view public.v_puntos_publicos as
   select id, nombre, tipo, departamento, municipio, direccion, lat, lon,
          materiales_si, materiales_no, horario, recoge_domicilio,
          persona_contacto, telefono, como_llega_material,
-         verificacion, fecha_verificacion
+         verificacion, fecha_verificacion,
+         telefono_reciclador
   from public.puntos_acopio
   where publicado and not eliminado;
 
@@ -486,7 +497,8 @@ begin
   insert into public.puntos_acopio (
     nombre, tipo, departamento, municipio, direccion,
     materiales_si, materiales_no, horario, recoge_domicilio,
-    persona_contacto, telefono, como_llega_material, confirmado_por_llamada,
+    persona_contacto, telefono, telefono_reciclador, telefono_registra,
+    como_llega_material, confirmado_por_llamada,
     publicado)
   values (
     p->>'nombre',
@@ -500,6 +512,8 @@ begin
     nullif(p->>'recoge_domicilio','')::sino,
     nullif(p->>'persona_contacto',''),
     nullif(p->>'telefono',''),
+    nullif(p->>'telefono_reciclador',''),
+    nullif(p->>'telefono_registra',''),
     nullif(p->>'como_llega_material',''),
     coalesce((p->>'confirmado_por_llamada')::boolean, false),
     public.autopublicar())
@@ -549,8 +563,9 @@ grant update (organizacion, departamento, municipio, zona, rol,
 
 grant update (nombre, tipo, departamento, municipio, direccion, lat, lon,
               materiales_si, materiales_no, horario, recoge_domicilio,
-              persona_contacto, telefono, como_llega_material,
-              confirmado_por_llamada, verificacion, notas, publicado, eliminado)
+              persona_contacto, telefono, telefono_reciclador, telefono_registra,
+              como_llega_material, confirmado_por_llamada, verificacion, notas,
+              publicado, eliminado)
   on public.puntos_acopio to authenticated;
 
 grant update (quien_reporta, whatsapp, publicar_contacto)

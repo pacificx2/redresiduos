@@ -247,3 +247,18 @@ select 'T32 la vista pública de reportes no expone contacto' as prueba,
     where table_schema='public' and table_name='v_reportes_publicos'
       and column_name in ('quien_reporta','whatsapp','publicar_contacto')
   ) as ok;
+
+-- El volumen se mide en kilos. Se comprueba sobre el tipo enumerado y no
+-- sobre el HTML: si alguien deja una etiqueta en metros cúbicos en un sitio
+-- y en kilos en el otro, el envío falla al guardar y nadie sabe por qué.
+select 'T33 el volumen ya no se mide en metros cúbicos' as prueba,
+  not exists (select 1 from unnest(enum_range(null::volumen)) v where v::text like '%m³%') as ok,
+  exists     (select 1 from unnest(enum_range(null::volumen)) v where v::text like '%kg%')  as hay_kilos;
+
+-- El teléfono de quien aporta un punto no sale por la vista pública; el del
+-- reciclador sí, porque llegar hasta él es para lo que sirve el directorio.
+select 'T34 de un punto se publica el reciclador, no quien lo aportó' as prueba,
+  exists (select 1 from information_schema.columns
+          where table_name='v_puntos_publicos' and column_name='telefono_reciclador') as reciclador_si,
+  not exists (select 1 from information_schema.columns
+          where table_name='v_puntos_publicos' and column_name='telefono_registra') as registra_no;

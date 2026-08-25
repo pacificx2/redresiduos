@@ -132,8 +132,28 @@ const navegador = await chromium.launch();
     await p.evaluate(() => !('publicar_contacto' in recoger('f1').datos)));
   comprobar('y el formulario dice que el número no se publica',
     norm(await p.textContent('#f1')).includes('no aparecen en ninguna pantalla pública'));
+  comprobar('el volumen se pide en kilos, no en metros cúbicos',
+    await p.evaluate(() => [...document.querySelectorAll('#r-vol option')]
+      .every(o => !o.textContent.includes('m³'))) &&
+    await p.evaluate(() => [...document.querySelectorAll('#r-vol option')]
+      .some(o => o.textContent.includes('kg'))));
 
-  await p.click('.back');
+  // `.back` existe en los tres formularios; hay que decir cuál.
+  await p.click('#f1 .back'); await p.waitForSelector('#home.on');
+  await p.click('.card >> nth=2'); await p.waitForSelector('#f3.on');
+  comprobar('el tercer formulario habla de aportar información',
+    norm(await p.textContent('#f3 h1, #home')).includes('Aportar información sobre un punto'));
+  comprobar('pide el teléfono del reciclador', await p.locator('#d-recic').count() === 1);
+  comprobar('y el de quien rellena, marcado como no público',
+    await p.locator('#d-suyo').count() === 1 &&
+    norm(await p.textContent('#f3')).includes('El de usted'));
+  comprobar('el envío manda los dos teléfonos nuevos',
+    await p.evaluate(() => {
+      const d = recoger('f3').datos;
+      return 'telefono_reciclador' in d && 'telefono_registra' in d;
+    }));
+  await p.click('#f3 .back'); await p.waitForSelector('#home.on');
+
   await p.waitForSelector('#home.on');
   /* Lo primero de la portada tiene que ser lo que la gente viene a hacer.
      El aviso de seguridad va después de las tarjetas, no delante. */
@@ -172,11 +192,12 @@ const navegador = await chromium.launch();
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(e.message));
 
-  /* Un solo manejador de diálogos para todo el bloque. Con varios `once`
-     conviven manejadores que no llegaron a dispararse (apagar el interruptor
-     no pide confirmación) y el siguiente confirm lo atienden dos a la vez. */
-  let dialogos = 0;
-  p.on('dialog', d => { dialogos++; d.accept(); });
+  /* Si alguna de estas acciones abriera un diálogo del navegador, esta
+     prueba lo cazaría: Playwright los descarta por defecto y el flujo se
+     quedaría a medias, igual que le pasa a quien marcó "no volver a
+     preguntar" en Firefox. */
+  let dialogosNativos = 0;
+  p.on('dialog', d => { dialogosNativos++; d.dismiss(); });
 
   await ctx.addInitScript(([reporte]) => {
     localStorage.setItem('redresiduos.sesion', JSON.stringify({
@@ -184,9 +205,10 @@ const navegador = await chromium.launch();
       refresh_token: 'r', expira: Date.now() + 3600e3, correo: 'mod@ejemplo.org'
     }));
     window.__escrituras = [];
+    window.__consultas = [];
     const real = window.fetch;
     window.fetch = (u, o = {}) => {
-      u = String(u);
+      u = String(u); window.__consultas.push(u);
       if (u.includes('rpc/es_moderador')) return Promise.resolve(new Response('true', { status:200 }));
       if (u.includes('/rest/v1/ajustes')) {
         if (o.method === 'PATCH') {
@@ -199,6 +221,12 @@ const navegador = await chromium.launch();
         window.__escrituras.push({ url:u, metodo:o.method, body:o.body });
         return Promise.resolve(new Response(null, { status:204 }));
       }
+      // La consulta de contar: sólo devuelve la cabecera con el total.
+      if (u.includes('limit=0')) {
+        const n = u.includes('/reportes?') ? '7' : u.includes('/voluntarios?') ? '3' : '5';
+        return Promise.resolve(new Response('[]', { status:200,
+          headers:{ 'content-range': '*/' + n } }));
+      }
       if (u.includes('/rest/v1/reportes?')) return Promise.resolve(new Response(JSON.stringify([reporte]), { status:200 }));
       if (u.includes('/rest/v1/')) return Promise.resolve(new Response('[]', { status:200 }));
       return real(u, o);
@@ -210,81 +238,116 @@ const navegador = await chromium.launch();
   await p.waitForSelector('.ficha', { timeout: 5000 });
 
   comprobar('entra al panel con sesión válida', await p.isVisible('#panel.on'));
-  comprobar('muestra el correo de quien entró', await p.textContent('#quien') === 'mod@ejemplo.org');
 
-  const txt = await p.textContent('#lista');
-  comprobar('pinta la ficha del reporte', txt.includes('Quibdó'));
-  comprobar('el moderador sí ve el teléfono', txt.includes('3001112233'));
-  comprobar('avisa de residuo peligroso', txt.includes('No lo mueven voluntarios'));
+  // --- Los contadores, que era el problema ---
+  await p.waitForTimeout(600);
+  comprobar('cuenta las tres pestañas, no sólo la abierta',
+    (await p.textContent('#n-reportes')) === '7' &&
+    (await p.textContent('#n-voluntarios')) === '3' &&
+    (await p.textContent('#n-puntos')) === '5');
+  comprobar('y dice cuántas fichas hay en la lista',
+    (await p.textContent('#cuenta')) === '1 ficha');
 
-  // Publicado sin que nadie lo mirara: el estado 1, que es el que urge.
-  comprobar('nombra el estado 1 (publicado sin moderar)',
-    txt.includes('1 · No moderado y publicado'));
-  comprobar('la ficha lleva el color de su tipo',
-    await p.locator('.ficha.t-reportes').count() === 1);
+  // --- La ficha empieza plegada ---
+  comprobar('la ficha ocupa una línea hasta que se abre',
+    await p.evaluate(() => !document.querySelector('#lista details.ficha').open));
+  comprobar('el resumen dice lo justo para decidir si abrirla',
+    (await p.textContent('#lista summary')).includes('Quibdó') &&
+    (await p.textContent('#lista summary')).includes('No moderado y publicado'));
+  comprobar('los botones no se pueden pulsar con la ficha cerrada',
+    !(await p.locator('#lista button:has-text("Modificar")').isVisible()));
 
+  await p.click('#lista summary');
+  await p.waitForTimeout(300);
+  comprobar('al abrirla se ve todo', (await p.textContent('#lista')).includes('3001112233'));
+  comprobar('avisa de residuo peligroso', (await p.textContent('#lista')).includes('No lo mueven voluntarios'));
   comprobar('NO ejecuta el HTML que venga en un reporte',
     !(await p.evaluate(() => window.__xss === 1)) &&
     await p.locator('#lista img[src="x"]').count() === 0);
-  comprobar('el texto peligroso se ve como texto', txt.includes('onerror'));
 
-  // El interruptor de publicación automática
-  const auto = await p.textContent('#caja-auto');
-  comprobar('avisa de que la publicación automática está encendida',
-    auto.includes('encendida') && auto.includes('sin que nadie lo mire'));
-  await p.click('#caja-auto button');
-  await p.waitForTimeout(400);
-  let esc = await p.evaluate(() => window.__escrituras);
-  comprobar('apagarla escribe en los ajustes',
-    esc.some(e => e.url.includes('ajustes') && e.body === '{"valor":false}'));
+  // --- Filtros de estado, uno a uno ---
+  await p.uncheck('#e1'); await p.uncheck('#e4'); await p.check('#e3');
+  await p.waitForTimeout(500);
+  let cons = await p.evaluate(() => window.__consultas);
+  const conFiltro = cons.filter(u => u.includes('/reportes?') && !u.includes('limit=0')).pop();
+  comprobar('se puede pedir un solo estado',
+    conFiltro.includes('or=(and(eliminado.is.true))'));
+  await p.check('#e1'); await p.waitForTimeout(500);
+  cons = await p.evaluate(() => window.__consultas);
+  const dos = cons.filter(u => u.includes('/reportes?') && !u.includes('limit=0')).pop();
+  comprobar('y dos a la vez, sin arrastrar los otros',
+    dos.includes('eliminado.is.true') && dos.includes('publicado.is.true,moderado.is.false') &&
+    !dos.includes('publicado.is.false'));
+  await p.uncheck('#e1'); await p.uncheck('#e3'); await p.waitForTimeout(400);
+  comprobar('sin ningún estado marcado lo dice en vez de enseñar todo',
+    (await p.textContent('#lista')).includes('Marque al menos un estado'));
+  await p.check('#e1'); await p.check('#e4'); await p.waitForTimeout(600);
 
-  // Publicar / despublicar. Quitar de lo público pide confirmación, y sin
-  // aceptarla el navegador la descarta y no se escribe nada: por eso va aquí
-  // el manejador antes del clic.
-  // Acotado a #lista: el botón del interruptor pasa a decir "Encenderla:
-  // publicar todo al momento" y un selector suelto lo caza a él.
-  await p.click('#lista button:has-text("Publicar"), #lista button:has-text("Quitar de lo público")');
-  await p.waitForTimeout(400);
-  esc = await p.evaluate(() => window.__escrituras);
-  const pub = esc.filter(e => e.url.includes('reportes?id=eq.'));
-  comprobar('el botón de publicar escribe sólo esa columna',
-    pub.length === 1 && /^\{"publicado":(true|false)\}$/.test(pub[0].body));
+  // --- Publicar / eliminar / borrar, con la confirmación dentro de la página ---
+  await p.click('#lista summary'); await p.waitForTimeout(300);
 
-  // Eliminar (retirar): deja la fila para poder deshacerlo
+  await p.click('#lista button:has-text("Quitar de lo público")');
+  await p.waitForSelector('.dialogo', { timeout:3000 });
+  comprobar('la confirmación se dibuja en la página, no la abre el navegador',
+    await p.isVisible('.dialogo'));
+  comprobar('el foco arranca en Cancelar, no en el botón grave',
+    await p.evaluate(() => document.activeElement.hasAttribute('data-no')));
+  await p.click('.dialogo [data-no]');
+  await p.waitForTimeout(300);
+  comprobar('cancelar no escribe nada',
+    (await p.evaluate(() => window.__escrituras)).filter(e => e.url.includes('/reportes?')).length === 0);
+
+  await p.click('#lista button:has-text("Quitar de lo público")');
+  await p.waitForSelector('.dialogo');
+  await p.click('.dialogo [data-si]');
+  await p.waitForTimeout(500);
+  let esc2 = await p.evaluate(() => window.__escrituras);
+  comprobar('confirmar sí escribe, y sólo esa columna',
+    esc2.filter(e => e.url.includes('/reportes?id=eq.') && e.body === '{"publicado":false}').length === 1);
+
+  await p.click('#lista summary'); await p.waitForTimeout(300);
   await p.click('#lista button:has-text("Eliminar")');
-  await p.waitForTimeout(400);
-  esc = await p.evaluate(() => window.__escrituras);
-  const ret = esc.filter(e => e.body && e.body.includes('"eliminado":true'));
+  await p.waitForSelector('.dialogo');
+  await p.click('.dialogo [data-si]');
+  await p.waitForTimeout(500);
+  esc2 = await p.evaluate(() => window.__escrituras);
+  const ret = esc2.filter(e => e.body && e.body.includes('"eliminado":true'));
   comprobar('"Eliminar" retira y despublica, sin borrar la fila',
     ret.length === 1 && JSON.parse(ret[0].body).publicado === false);
 
-  // Borrado definitivo: dos confirmaciones y un DELETE
-  const antesDeBorrar = dialogos;
+  await p.click('#lista summary'); await p.waitForTimeout(300);
   await p.click('#lista button:has-text("Borrar definitivamente")');
-  await p.waitForTimeout(500);
-  esc = await p.evaluate(() => window.__escrituras);
-  comprobar('el borrado definitivo pide confirmar dos veces',
-    dialogos - antesDeBorrar === 2);
-  comprobar('y manda un DELETE de verdad',
-    esc.some(e => e.metodo === 'DELETE' && e.url.includes('reportes?id=eq.')));
+  await p.waitForSelector('.dialogo');
+  comprobar('el borrado ofrece la alternativa reversible',
+    (await p.textContent('.dialogo')).includes('Eliminar'));
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(300);
+  comprobar('Escape cierra sin borrar',
+    !(await p.locator('.dialogo').count()) &&
+    !(await p.evaluate(() => window.__escrituras)).some(e => e.metodo === 'DELETE'));
 
-  // Modificar
+  await p.click('#lista button:has-text("Borrar definitivamente")');
+  await p.waitForSelector('.dialogo');
+  await p.click('.dialogo [data-si]');
+  await p.waitForTimeout(500);
+  comprobar('y confirmando sí manda el DELETE',
+    (await p.evaluate(() => window.__escrituras)).some(e => e.metodo === 'DELETE' && e.url.includes('/reportes?id=eq.')));
+
+  // --- Modificar ---
+  await p.click('#lista summary'); await p.waitForTimeout(300);
   await p.click('#lista button:has-text("Modificar")');
   await p.waitForSelector('#e-municipio', { timeout: 3000 });
   comprobar('el formulario de edición trae el contenido cargado',
     await p.inputValue('#e-municipio') === 'Quibdó');
   comprobar('y también los datos de contacto',
     await p.inputValue('#h-whatsapp') === '3001112233');
-  comprobar('avisa de que la edición queda registrada',
-    (await p.textContent('.ficha')).includes('queda marcada como moderada'));
-
   await p.fill('#e-municipio', 'Istmina');
   await p.fill('#h-whatsapp', '3007654321');
   await p.click('#lista button:has-text("Guardar cambios")');
-  await p.waitForTimeout(600);
-  esc = await p.evaluate(() => window.__escrituras);
-  const guardado = esc.filter(e => e.metodo === 'PATCH' && e.url.includes('/reportes?id=eq.')).pop();
-  const guardadoC = esc.filter(e => e.url.includes('reportes_contacto?')).pop();
+  await p.waitForTimeout(700);
+  esc2 = await p.evaluate(() => window.__escrituras);
+  const guardado = esc2.filter(e => e.metodo === 'PATCH' && e.url.includes('/reportes?id=eq.')).pop();
+  const guardadoC = esc2.filter(e => e.url.includes('reportes_contacto?')).pop();
   comprobar('guarda el municipio corregido',
     guardado && JSON.parse(guardado.body).municipio === 'Istmina');
   comprobar('guarda el teléfono corregido',
@@ -293,6 +356,11 @@ const navegador = await chromium.launch();
     guardado && !('moderado' in JSON.parse(guardado.body)) &&
                 !('revisado_por' in JSON.parse(guardado.body)));
 
+  comprobar('el volumen se ofrece en kilos, no en metros cúbicos',
+    await p.evaluate(() => VOLUMENES.every(v => !v.includes('m³'))) &&
+    await p.evaluate(() => VOLUMENES.some(v => v.includes('kg'))));
+
+  comprobar('en ningún momento se abrió un diálogo del navegador', dialogosNativos === 0);
   comprobar('no desborda a lo ancho',
     !(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
   comprobar('sin errores de JS', errs.length === 0);

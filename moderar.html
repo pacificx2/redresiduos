@@ -18,7 +18,7 @@
 <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
-<link rel="stylesheet" href="estilos.css?v=5">
+<link rel="stylesheet" href="estilos.css?v=6">
 </head>
 <body>
 
@@ -79,18 +79,15 @@
     <button class="tab t-puntos"      role="tab" id="tab-puntos"      onclick="verPestana('puntos')">Puntos <span class="n" id="n-puntos">·</span></button>
   </div>
 
+  <fieldset class="estados">
+    <legend>Estados que quiere ver</legend>
+    <label><input type="checkbox" id="e1" checked onchange="cargar()"> <span class="pill pill-warn">1</span> No moderado y publicado</label>
+    <label><input type="checkbox" id="e2" onchange="cargar()"> <span class="pill pill-ok">2</span> Moderado y publicado</label>
+    <label><input type="checkbox" id="e3" onchange="cargar()"> <span class="pill pill-danger">3</span> Moderado y eliminado</label>
+    <label><input type="checkbox" id="e4" checked onchange="cargar()"> <span class="pill">4</span> En espera de moderación</label>
+  </fieldset>
+
   <div class="filtros">
-    <div class="field">
-      <label for="f-estado">Estado</label>
-      <select id="f-estado" onchange="cargar()">
-        <option value="sin_revisar">Todo lo que falta por revisar</option>
-        <option value="no_moderado_publicado">1 · No moderado y publicado</option>
-        <option value="moderado_publicado">2 · Moderado y publicado</option>
-        <option value="moderado_eliminado">3 · Moderado y eliminado</option>
-        <option value="en_espera">4 · En espera de moderación</option>
-        <option value="todos">Todo</option>
-      </select>
-    </div>
     <div class="field">
       <label for="f-dep">Departamento</label>
       <select id="f-dep" onchange="cargar()"><option value="">Todos</option></select>
@@ -98,6 +95,7 @@
   </div>
 
   <p class="cinta" id="cinta"></p>
+  <p class="cuenta" id="cuenta">Cargando…</p>
   <div id="lista" class="lista"></div>
 
   <div class="sesion">
@@ -115,7 +113,7 @@
 
 </div>
 
-<script src="config.js?v=5"></script>
+<script src="config.js?v=6"></script>
 <script>
 /* =====================================================================
    MODERACIÓN
@@ -149,8 +147,9 @@ var TIPOS_RESIDUO = ['Plástico (botellas, empaques)','Icopor','Cartón y papel'
   'Bolsas y plástico film','Vidrio','Latas y metal','Ropa y textiles',
   'Orgánicos / alimentos','Mezclado sin separar','RAEE (electrónicos)',
   'Peligrosos (pilas, medicamentos)','Escombros','Otro'];
-var VOLUMENES = ['Menos de 1 m³ (unas pocas bolsas)','1 a 5 m³ (un camión pequeño)',
-  '5 a 20 m³ (un camión grande)','Más de 20 m³','No sé calcularlo'];
+var VOLUMENES = ['Menos de 20 kg (unas pocas bolsas)','20 a 100 kg (llena una moto o un carrito)',
+  '100 a 500 kg (una camioneta llena)','Más de 500 kg (hace falta un camión)',
+  'No sé calcularlo'];
 var SINO = ['Sí','No','No sé'];
 var ESTADOS = ['Reportado','En gestión','Voluntarios asignados','Recogido',
   'Sin solución aún','Duplicado'];
@@ -467,8 +466,10 @@ var TIPOS = {
       {k:'materiales_no', et:'Qué no recibe', area:true},
       {k:'horario',       et:'Horario'},
       {k:'recoge_domicilio', et:'Recoge a domicilio', ops:SINO, vacio:true},
-      {k:'persona_contacto', et:'Persona de contacto'},
-      {k:'telefono',         et:'Teléfono'},
+      {k:'persona_contacto',    et:'Persona de contacto'},
+      {k:'telefono',            et:'Teléfono del punto (público)'},
+      {k:'telefono_reciclador', et:'Teléfono del reciclador (público)'},
+      {k:'telefono_registra',   et:'Teléfono de quien lo aportó (no se publica)'},
       {k:'como_llega_material', et:'Cómo debe llegar el material', area:true},
       {k:'confirmado_por_llamada', et:'Confirmado por llamada', bool:true},
       {k:'verificacion', et:'Verificación', ops:VERIFICACIONES},
@@ -477,22 +478,35 @@ var TIPOS = {
   }
 };
 
-/* ---------- los cuatro estados ---------- */
+/* ---------- los cuatro estados ----------
+   Los cuatro cubren todas las combinaciones posibles de las tres columnas,
+   sin solaparse. Eso importa: si un estado quedara fuera, una fila no
+   coincidiría con ningún filtro y desaparecería de la pantalla sin que
+   nadie se enterase. Por eso el cuarto es "no publicado y no eliminado" a
+   secas, y no exige además estar sin moderar: una ficha que un moderador
+   corrigió pero no publicó sigue esperando decisión, y tiene que verse. */
+var ESTADOS_FILTRO = {
+  1: { texto:'No moderado y publicado',  pill:'pill-warn',
+       donde:'and(eliminado.is.false,publicado.is.true,moderado.is.false)' },
+  2: { texto:'Moderado y publicado',     pill:'pill-ok',
+       donde:'and(eliminado.is.false,publicado.is.true,moderado.is.true)' },
+  3: { texto:'Moderado y eliminado',     pill:'pill-danger',
+       donde:'and(eliminado.is.true)' },
+  4: { texto:'En espera de moderación',  pill:'',
+       donde:'and(eliminado.is.false,publicado.is.false)' }
+};
+
 function estadoDe(f){
-  if (f.eliminado)                 return { n:3, texto:'Moderado y eliminado',   pill:'pill-danger' };
-  if (f.publicado && !f.moderado)  return { n:1, texto:'No moderado y publicado', pill:'pill-warn'  };
-  if (f.publicado && f.moderado)   return { n:2, texto:'Moderado y publicado',    pill:'pill-ok'    };
-  return { n:4, texto:'En espera de moderación', pill:'' };
+  var n = f.eliminado ? 3 : (f.publicado ? (f.moderado ? 2 : 1) : 4);
+  return { n:n, texto:ESTADOS_FILTRO[n].texto, pill:ESTADOS_FILTRO[n].pill };
 }
 
-var FILTROS = {
-  sin_revisar:            '&moderado=is.false&eliminado=is.false',
-  no_moderado_publicado:  '&publicado=is.true&moderado=is.false&eliminado=is.false',
-  moderado_publicado:     '&publicado=is.true&moderado=is.true&eliminado=is.false',
-  moderado_eliminado:     '&eliminado=is.true',
-  en_espera:              '&publicado=is.false&moderado=is.false&eliminado=is.false',
-  todos:                  ''
-};
+function filtroEstados(){
+  var elegidos = [1,2,3,4].filter(function(n){ return document.getElementById('e' + n).checked; });
+  if (!elegidos.length) return null;            // nada marcado: no se pide nada
+  if (elegidos.length === 4) return '';         // los cuatro: no hace falta filtrar
+  return '&or=(' + elegidos.map(function(n){ return ESTADOS_FILTRO[n].donde; }).join(',') + ')';
+}
 
 /* ---------- publicar automáticamente ---------- */
 function cargarAjuste(){
@@ -521,13 +535,22 @@ function pintarAjuste(a){
 }
 
 function cambiarAjuste(valor){
-  if (valor && !confirm('Con esto encendido, lo que envíe cualquiera sale publicado sin que nadie lo revise, incluidos los teléfonos que se autoricen a publicar.\n\n¿Encenderla?')) return;
+  var paso = valor
+    ? preguntar('Encender la publicación automática',
+        'Lo que envíe cualquiera saldrá publicado <strong>sin que nadie lo revise</strong>, ' +
+        'incluidos los teléfonos de quien autorice publicarlos.',
+        'Encenderla', true)
+    : Promise.resolve(true);
+  paso.then(function(si){ if (si) guardarAjuste(valor); });
+}
+
+function guardarAjuste(valor){
   api('/rest/v1/ajustes?clave=eq.autopublicar', {
     method:'PATCH',
     headers:{ 'Content-Type':'application/json', 'Prefer':'return=representation' },
     body: JSON.stringify({ valor: valor })
   }).then(function(filas){ pintarAjuste(filas && filas[0]); })
-    .catch(function(err){ alert('No se pudo cambiar: ' + err.message); });
+    .catch(function(err){ avisar('No se pudo cambiar', err.message); });
 }
 
 /* ---------- pestañas y carga ---------- */
@@ -543,19 +566,61 @@ function verPestana(cual){
   cargar();
 }
 
-function cargar(){
-  var caja = document.getElementById('lista');
-  caja.innerHTML = '<p class="cargando">Cargando…</p>';
-  var cual = pestana, t = TIPOS[cual];
-
-  var q = t.ruta + '&order=creado_en.desc&limit=200' +
-          (FILTROS[document.getElementById('f-estado').value] || '');
+function condiciones(){
+  var q = filtroEstados();
+  if (q === null) return null;
   var d = document.getElementById('f-dep').value;
   if (d) q += '&departamento=eq.' + encodeURIComponent(d);
+  return q;
+}
 
-  api(q).then(function(filas){
+/* Cuántos hay de cada tipo, con los filtros puestos.
+
+   Antes el número de una pestaña sólo se calculaba al abrirla, así que las
+   otras dos se quedaban con el punto de relleno y parecía que estuvieran
+   vacías. Ahora se piden los tres al cargar. `count=exact` con `limit=0`
+   trae sólo la cuenta en la cabecera Content-Range, sin traer las filas. */
+function contarPestanas(cond){
+  Object.keys(TIPOS).forEach(function(cual){
+    var el = document.getElementById('n-' + cual);
+    if (cond === null) { el.textContent = '0'; return; }
+    fetch(SUPABASE_URL + TIPOS[cual].ruta + '&limit=0' + cond, {
+      headers:{
+        'apikey':SUPABASE_KEY,
+        'Authorization':'Bearer ' + (sesion ? sesion.access_token : SUPABASE_KEY),
+        'Prefer':'count=exact'
+      }
+    }).then(function(r){
+      var rango = r.headers.get('content-range') || '';
+      var total = rango.split('/')[1];
+      // Nunca se deja el valor anterior: un número viejo al lado de una
+      // lista que no cargó engaña más que no poner nada.
+      el.textContent = (r.ok && total && total !== '*') ? total : '?';
+    }).catch(function(){ el.textContent = '?'; });
+  });
+}
+
+function cargar(){
+  var caja = document.getElementById('lista');
+  var cuenta = document.getElementById('cuenta');
+  var cual = pestana, t = TIPOS[cual];
+  var cond = condiciones();
+
+  contarPestanas(cond);
+
+  if (cond === null) {
+    cuenta.textContent = '';
+    caja.innerHTML = '<div class="vacio">Marque al menos un estado para ver algo.</div>';
+    return;
+  }
+
+  caja.innerHTML = '<p class="cargando">Cargando…</p>';
+  cuenta.textContent = 'Contando…';
+
+  api(t.ruta + '&order=creado_en.desc&limit=200' + cond).then(function(filas){
     if (cual !== pestana) return;
-    document.getElementById('n-' + cual).textContent = filas.length;
+    cuenta.textContent = filas.length === 0 ? 'nada con estos filtros'
+      : (filas.length === 1 ? '1 ficha' : filas.length + ' fichas');
     if (!filas.length) {
       caja.innerHTML = '<div class="vacio">No hay nada aquí con estos filtros.</div>';
       return;
@@ -563,6 +628,7 @@ function cargar(){
     caja.innerHTML = filas.map(function(f){ return ficha(cual, f); }).join('');
   }).catch(function(err){
     if (err.message === 'sesion') { borrarSesion(); location.reload(); return; }
+    cuenta.textContent = 'no se pudo contar';
     caja.innerHTML = '<div class="note note-danger"><h3>No se pudo cargar</h3>' +
       '<p style="margin:0">' + esc(err.message).slice(0,200) + '</p></div>';
   });
@@ -583,6 +649,13 @@ function valorLegible(f, c){
   return v;
 }
 
+/* Una ficha ocupa una línea hasta que se abre.
+
+   Con veinte fichas desplegadas no se ve nada y hay que hacer scroll para
+   contarlas. Se usa <details>: lo abre y lo cierra el propio navegador, sin
+   JavaScript, y sigue funcionando con el teclado y con lector de pantalla.
+   La línea de resumen lleva lo que hace falta para decidir si abrirla:
+   dónde es, de qué tipo y en qué estado está. */
 function ficha(cual, f){
   var t = TIPOS[cual];
   var hijo = (t.hijo && f[t.hijo]) ? f[t.hijo] : {};
@@ -611,22 +684,26 @@ function ficha(cual, f){
     filas += '<dt>En el mapa</dt><dd><a href="https://www.google.com/maps?q=' +
       f.lat + ',' + f.lon + '" target="_blank" rel="noopener">abrir</a></dd>';
   }
+  filas += '<dt>Recibido</dt><dd>' + esc(fecha(f.creado_en)) + '</dd>';
   if (f.revisado_por)   filas += '<dt>Revisado por</dt><dd>' + esc(f.revisado_por) + '</dd>';
   if (f.verificado_por) filas += '<dt>Verificado por</dt><dd>' + esc(f.verificado_por) + '</dd>';
 
-  return '<article class="ficha ' + t.clase + (peligroso ? ' peligro' : '') + '">' +
-    '<p class="ficha-meta">' + esc(fecha(f.creado_en)) + '</p>' +
-    '<h3>' + esc(titulo) + '</h3>' +
-    '<p style="margin:.2rem 0 .5rem">' +
-      '<span class="pill ' + (peligroso ? 'pill-danger' : 'pill-tipo') + '">' + esc(subtitulo) + '</span> ' +
-      '<span class="pill ' + e.pill + '">' + e.n + ' · ' + esc(e.texto) + '</span>' +
-    '</p>' +
-    (peligroso ? '<div class="note note-danger" style="margin:.5rem 0"><h3>No lo mueven voluntarios</h3>' +
-      '<p style="margin:0">Requiere gestor autorizado.</p></div>' : '') +
-    '<dl>' + filas + '</dl>' +
-    (f.foto_url ? '<img src="' + esc(f.foto_url) + '" alt="Foto del punto reportado" loading="lazy">' : '') +
-    acciones(cual, f) +
-    '</article>';
+  return '<details class="ficha ' + t.clase + (peligroso ? ' peligro' : '') + '">' +
+    '<summary>' +
+      '<span class="sum-t">' + esc(titulo) + '</span>' +
+      '<span class="sum-p">' +
+        '<span class="pill ' + (peligroso ? 'pill-danger' : 'pill-tipo') + '">' + esc(subtitulo) + '</span> ' +
+        '<span class="pill ' + e.pill + '">' + e.n + ' · ' + esc(e.texto) + '</span>' +
+      '</span>' +
+    '</summary>' +
+    '<div class="ficha-cuerpo">' +
+      (peligroso ? '<div class="note note-danger" style="margin:.5rem 0"><h3>No lo mueven voluntarios</h3>' +
+        '<p style="margin:0">Requiere gestor autorizado.</p></div>' : '') +
+      '<dl>' + filas + '</dl>' +
+      (f.foto_url ? '<img src="' + esc(f.foto_url) + '" alt="Foto del punto reportado" loading="lazy">' : '') +
+      acciones(cual, f) +
+    '</div>' +
+    '</details>';
 }
 
 function acciones(cual, f){
@@ -676,8 +753,10 @@ function formulario(cual, f, hijo){
     cuerpo += '<p class="eyebrow" style="margin-top:.6rem">Datos de contacto</p>' +
       t.camposHijo.map(function(c){ return control('h', c, hijo[c.k]); }).join('');
   }
-  return '<article class="ficha ' + t.clase + '">' +
-    '<p class="ficha-meta">Modificando · ' + esc(fecha(f.creado_en)) + '</p>' +
+  return '<details class="ficha ' + t.clase + '" open>' +
+    '<summary><span class="sum-t">Modificando</span>' +
+    '<span class="sum-p"><span class="pill">' + esc(fecha(f.creado_en)) + '</span></span></summary>' +
+    '<div class="ficha-cuerpo">' +
     '<div class="note note-plain" style="margin:.4rem 0 .8rem"><h3>Queda registrado</h3>' +
     '<p style="margin:0">Al guardar, la fila queda marcada como moderada y se apunta ' +
     'su correo y la hora. Eso lo pone la base de datos, no esta pantalla.</p></div>' +
@@ -688,7 +767,7 @@ function formulario(cual, f, hijo){
         '<button type="button" class="btn" onclick="editando=null;cargar()">Cancelar</button>' +
       '</div>' +
     '</form>' +
-    '</article>';
+    '</div></details>';
 }
 
 function editar(cual, id){ editando = id; cargar(); }
@@ -735,9 +814,55 @@ function guardar(ev, cual, id){
   paso.then(function(){ editando = null; cargar(); })
       .catch(function(err){
         boton.disabled = false; boton.textContent = 'Guardar cambios';
-        alert('No se pudo guardar:\n\n' + err.message);
+        avisar('No se pudo guardar', err.message);
       });
   return false;
+}
+
+/* ---------- preguntar antes de algo grave ----------
+
+   Sin `confirm()` a propósito. Firefox y Chrome ofrecen "no dejes que este
+   sitio vuelva a preguntarte" cuando una página abre varios diálogos
+   seguidos, y en cuanto alguien lo marca, `confirm()` devuelve false para
+   siempre: los botones de borrar dejan de funcionar y no hay forma de
+   saberlo desde el código. Le pasó a quien usa esto.
+
+   Esta ventana la dibuja la página, así que el navegador no puede
+   silenciarla. Devuelve una promesa: true si confirma, false si no.
+   Se cierra con Escape, con el botón de cancelar y tocando fuera. */
+function preguntar(titulo, texto, textoBoton, peligroso){
+  return new Promise(function(resolve){
+    var fondo = document.createElement('div');
+    fondo.className = 'dialogo-fondo';
+    fondo.innerHTML =
+      '<div class="dialogo" role="alertdialog" aria-modal="true" aria-labelledby="dlg-t">' +
+        '<h2 id="dlg-t">' + esc(titulo) + '</h2>' +
+        '<p>' + texto + '</p>' +
+        '<div class="dialogo-btns">' +
+          '<button type="button" class="btn" data-no>Cancelar</button>' +
+          '<button type="button" class="btn ' + (peligroso ? 'btn-danger' : 'btn-ok') + '" data-si>' +
+            esc(textoBoton) + '</button>' +
+        '</div>' +
+      '</div>';
+
+    var antes = document.activeElement;
+    function cerrar(valor){
+      document.removeEventListener('keydown', tecla);
+      fondo.remove();
+      if (antes && antes.focus) antes.focus();
+      resolve(valor);
+    }
+    function tecla(ev){ if (ev.key === 'Escape') cerrar(false); }
+
+    fondo.querySelector('[data-no]').onclick = function(){ cerrar(false); };
+    fondo.querySelector('[data-si]').onclick = function(){ cerrar(true); };
+    fondo.onclick = function(ev){ if (ev.target === fondo) cerrar(false); };
+    document.addEventListener('keydown', tecla);
+
+    document.body.appendChild(fondo);
+    // El foco arranca en Cancelar: lo grave no debe pasar con un Enter suelto.
+    fondo.querySelector('[data-no]').focus();
+  });
 }
 
 /* ---------- escribir ---------- */
@@ -750,26 +875,54 @@ function escribir(tabla, id, cambio){
 }
 
 function publicar(cual, id, valor){
-  if (!valor && !confirm('¿Quitar esto de lo que ve el público?')) return;
-  escribir(TIPOS[cual].tabla, id, { publicado: valor })
-    .then(cargar).catch(function(err){ alert('No se pudo guardar: ' + err.message); });
+  var paso = valor ? Promise.resolve(true)
+    : preguntar('Quitar de lo público',
+        'Dejará de verse en el directorio. Se puede volver a publicar cuando quiera.',
+        'Quitar');
+  paso.then(function(si){
+    if (!si) return;
+    escribir(TIPOS[cual].tabla, id, { publicado: valor })
+      .then(cargar).catch(function(err){ avisar('No se pudo guardar', err.message); });
+  });
 }
 
 /* Eliminar es retirar: la fila se queda para poder deshacerlo. */
 function retirar(cual, id, valor){
-  if (valor && !confirm('Se retira de todo lo público y queda marcado como eliminado.\n\nLa fila sigue en la base y se puede restaurar. ¿Continuar?')) return;
-  escribir(TIPOS[cual].tabla, id, valor ? { eliminado:true, publicado:false } : { eliminado:false })
-    .then(cargar).catch(function(err){ alert('No se pudo guardar: ' + err.message); });
+  var paso = valor
+    ? preguntar('Eliminar',
+        'Se retira de todo lo público y queda en el estado <strong>3 · Moderado y eliminado</strong>. ' +
+        'La fila sigue en la base de datos y se puede restaurar.',
+        'Eliminar')
+    : Promise.resolve(true);
+  paso.then(function(si){
+    if (!si) return;
+    escribir(TIPOS[cual].tabla, id, valor ? { eliminado:true, publicado:false } : { eliminado:false })
+      .then(cargar).catch(function(err){ avisar('No se pudo guardar', err.message); });
+  });
 }
 
 /* Borrar sí es borrar: no hay deshacer, y con él se van los datos de contacto. */
+/* Una sola confirmación y no dos: dos seguidas eran lo que hacía saltar el
+   aviso del navegador para silenciar los diálogos. Con una bien escrita, y
+   el foco puesto en Cancelar, basta. */
 function borrar(cual, id){
-  if (!confirm('BORRADO DEFINITIVO\n\nLa fila y sus datos de contacto desaparecen de la base de datos. Esto no se puede deshacer.\n\n¿Seguro?')) return;
-  if (!confirm('Última confirmación: no hay vuelta atrás.')) return;
-  api('/rest/v1/' + TIPOS[cual].tabla + '?id=eq.' + encodeURIComponent(id), {
-    method:'DELETE',
-    headers:{ 'Prefer':'return=minimal' }
-  }).then(cargar).catch(function(err){ alert('No se pudo borrar: ' + err.message); });
+  preguntar('Borrar definitivamente',
+    'La fila y sus datos de contacto <strong>desaparecen de la base de datos</strong>. ' +
+    'Esto no se puede deshacer.<br><br>Si sólo quiere que deje de verse, ' +
+    'use <strong>Eliminar</strong>, que sí se puede restaurar.',
+    'Borrar para siempre', true).then(function(si){
+    if (!si) return;
+    api('/rest/v1/' + TIPOS[cual].tabla + '?id=eq.' + encodeURIComponent(id), {
+      method:'DELETE',
+      headers:{ 'Prefer':'return=minimal' }
+    }).then(cargar).catch(function(err){ avisar('No se pudo borrar', err.message); });
+  });
+}
+
+/* `alert()` lo puede silenciar el navegador igual que `confirm()`, así que
+   los errores también se muestran en la página. */
+function avisar(titulo, detalle){
+  preguntar(titulo, esc(String(detalle || '')).slice(0,300), 'Entendido');
 }
 
 arrancar();

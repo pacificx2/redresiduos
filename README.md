@@ -63,6 +63,15 @@ Las listas desplegables son exactamente las de la hoja `Listas`.
 
 ## Decisiones de diseño
 
+- **El volumen se pide en kilos, no en metros cúbicos.** Nadie estima un
+  volumen mirando un montón en la calle. Cada tramo lleva un anclaje concreto
+  («llena una moto», «una camioneta llena»), porque el kilo tampoco se estima
+  a ojo sin una referencia.
+- **La moderación no usa `confirm()` del navegador.** Firefox y Chrome ofrecen
+  «no dejes que este sitio vuelva a preguntar» cuando una página abre varios
+  diálogos seguidos, y en cuanto alguien lo marca, `confirm()` devuelve `false`
+  para siempre: los botones de borrar dejan de funcionar y el código no puede
+  enterarse. La confirmación la dibuja la propia página.
 - **GPS de un toque** en lugar de pedir un enlace de Google Maps pegado a mano.
   En zonas sin nomenclatura, una dirección escrita no sirve para enviar un camión.
 - **Foto directa desde la cámara**, reducida en el teléfono antes de subirla.
@@ -126,8 +135,8 @@ node pruebas/navegador.mjs
 2. **Ver a alguien del equipo usar la moderación.** Sólo la ha usado quien la
    escribió; eso no es lo mismo que saber que se entiende.
 3. Que la página abra sin señal (aún hace falta conexión para cargarla).
-4. Un punto de acopio no tiene forma de guardar su ubicación: el formulario no
-   pide GPS y la función de inserción no acepta `lat`/`lon`. El directorio
+4. Un punto de acopio sigue sin forma de guardar su ubicación: el formulario
+   no pide GPS y la función de inserción no acepta `lat`/`lon`. El directorio
    intenta pintar un enlace al mapa que nunca puede aparecer.
 
 Y hay que atender de verdad `contacto@reciclamores.org`, porque el aviso de

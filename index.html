@@ -18,7 +18,7 @@
 <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
-<link rel="stylesheet" href="estilos.css?v=5">
+<link rel="stylesheet" href="estilos.css?v=6">
 </head>
 <body>
 
@@ -60,7 +60,7 @@
     <button class="card t-puntos" onclick="go('f3')">
       <span class="card-n">03</span>
       <span>
-        <h2>Aportar un punto donde reciben material</h2>
+        <h2>Aportar información sobre un punto donde reciben material</h2>
         <p>Conoce una asociación de recicladores, un punto limpio o una bodega. Verifíquelo antes de enviarlo.</p>
       </span>
     </button>
@@ -327,8 +327,23 @@
       <input type="text" id="d-per">
     </div>
     <div class="field">
-      <label for="d-tel">Teléfono o WhatsApp <span class="req">*</span></label>
-      <input type="tel" id="d-tel" required>
+      <label for="d-tel">Teléfono o WhatsApp del punto <span class="req">*</span></label>
+      <input type="tel" id="d-tel" required inputmode="tel">
+      <p class="hint">Este número se publica en el directorio, para que la gente
+      pueda llamar antes de llevar material.</p>
+    </div>
+    <div class="field">
+      <label for="d-recic">Teléfono del reciclador que trabaja ahí</label>
+      <input type="tel" id="d-recic" inputmode="tel">
+      <p class="hint">Si hay una persona concreta que recoge en ese punto y le
+      dio su número, póngalo. <strong>También se publica</strong>, así que
+      pregúntele antes.</p>
+    </div>
+    <div class="field">
+      <label for="d-suyo">Su teléfono <span class="req">*</span></label>
+      <input type="tel" id="d-suyo" required inputmode="tel">
+      <p class="hint">El de usted, que está rellenando esto. <strong>No se
+      publica</strong>: sirve para preguntarle si algo del punto no cuadra.</p>
     </div>
     <div class="field">
       <label for="d-como">¿Cómo debe llegar el material?</label>
@@ -343,7 +358,7 @@
     la respuesta a la emergencia, y su almacenamiento en servidores fuera de
     Colombia. Puede pedir que se borren cuando quiera.
     <a href="datos.html" target="_blank" rel="noopener">Leer el aviso completo</a>.</p>
-    <button type="submit" class="submit">Proponer al directorio</button>
+    <button type="submit" class="submit">Aportar al directorio</button>
   </form>
 </section>
 
@@ -361,7 +376,7 @@
 
 </div>
 
-<script src="config.js?v=5"></script>
+<script src="config.js?v=6"></script>
 <script>
 var LISTAS = {
   dep:["Chocó","Risaralda","Valle del Cauca","Caldas","Quindío","Antioquia","Cauca","Tolima",
@@ -369,8 +384,13 @@ var LISTAS = {
   tipo:["Plástico (botellas, empaques)","Icopor","Cartón y papel","Bolsas y plástico film","Vidrio",
         "Latas y metal","Ropa y textiles","Orgánicos / alimentos","Mezclado sin separar",
         "RAEE (electrónicos)","Peligrosos (pilas, medicamentos)","Escombros","Otro"],
-  vol:["Menos de 1 m³ (unas pocas bolsas)","1 a 5 m³ (un camión pequeño)",
-       "5 a 20 m³ (un camión grande)","Más de 20 m³","No sé calcularlo"],
+  /* En kilos y no en metros cúbicos: nadie estima un volumen mirando un
+     montón en la calle. El anclaje entre paréntesis es lo que hace la
+     pregunta contestable. Tienen que coincidir exactamente con el tipo
+     enumerado del motor; si no, el envío falla al guardar. */
+  vol:["Menos de 20 kg (unas pocas bolsas)","20 a 100 kg (llena una moto o un carrito)",
+       "100 a 500 kg (una camioneta llena)","Más de 500 kg (hace falta un camión)",
+       "No sé calcularlo"],
   sino:["Sí","No","No sé"],
   rol:["Líder de zona","Voluntario de campo","Transporte / vehículo","Bodega o acopio temporal",
        "Comunicación y convocatoria","Contacto institucional","Otro"],
@@ -534,6 +554,8 @@ function recoger(cual){
     recoge_domicilio: val('d-dom'),
     persona_contacto: val('d-per'),
     telefono: val('d-tel'),
+    telefono_reciclador: val('d-recic'),
+    telefono_registra: val('d-suyo'),
     como_llega_material: val('d-como'),
     confirmado_por_llamada: chk('d-lla')
   }};
