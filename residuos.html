@@ -12,7 +12,7 @@
 <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
-<link rel="stylesheet" href="estilos.css?v=6">
+<link rel="stylesheet" href="estilos.css?v=7">
 </head>
 <body>
 
@@ -23,9 +23,14 @@
   </div>
 </header>
 
-<div class="wrap">
+<nav class="menu" aria-label="Secciones del sitio">
+  <a class="menu-i" href="index.html">Inicio</a>
+  <a class="menu-i t-puntos" href="donde-llevarlo.html">Dónde llevarlo</a>
+  <a class="menu-i t-reportes" href="residuos.html" aria-current="page">Residuos señalados</a>
+  <a class="menu-i t-voluntarios" href="quien-coordina.html">Quién coordina</a>
+</nav>
 
-<a class="volver" href="index.html">← Volver al inicio</a>
+<div class="wrap">
 
 <div class="intro">
   <p class="cinta t-reportes">Residuos señalados</p>
@@ -52,11 +57,6 @@
 
 <div id="lista" class="lista"></div>
 
-<div class="enlaces">
-  <p class="enlaces-t">Las otras dos pantallas</p>
-  <div id="otros"></div>
-</div>
-
 <footer class="pie">
   <a href="index.html">Reportar o inscribirme</a>
   <a href="datos.html">Tratamiento de datos personales</a>
@@ -66,9 +66,9 @@
 
 </div>
 
-<script src="config.js?v=6"></script>
+<script src="config.js?v=7"></script>
 <script>var TIPO = 'reportes';</script>
-<script src="directorio.js?v=6"></script>
+<script src="directorio.js?v=7"></script>
 
 </body>
 </html>

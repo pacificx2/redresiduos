@@ -231,13 +231,7 @@ document.getElementById('f-mun').addEventListener('input', function(){
     o.value = d; o.textContent = d; sel.appendChild(o);
   });
 
-  // Enlaces a las otras dos pantallas, cada uno con su color.
-  var otros = Object.keys(CATALOGO).filter(function(k){ return k !== TIPO; });
-  document.getElementById('otros').innerHTML = otros.map(function(k){
-    return '<a class="enlace-tipo ' + CATALOGO[k].clase + '" href="' + CATALOGO[k].pagina + '">' +
-      '<span class="enlace-tipo-t">' + esc(CATALOGO[k].titulo) + '</span>' +
-      '<span class="enlace-tipo-d">' + esc(CATALOGO[k].entrada) + '</span></a>';
-  }).join('');
+  // Ir a las otras pantallas es cosa del menú de arriba, que está siempre.
 
   cargar();
 })();

@@ -18,7 +18,7 @@
 <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
-<link rel="stylesheet" href="estilos.css?v=6">
+<link rel="stylesheet" href="estilos.css?v=7">
 </head>
 <body>
 
@@ -28,6 +28,13 @@
     <div class="proto">Prototipo</div>
   </div>
 </header>
+
+<nav class="menu" aria-label="Secciones del sitio">
+  <a class="menu-i" href="index.html" aria-current="page">Inicio</a>
+  <a class="menu-i t-puntos" href="donde-llevarlo.html">Dónde llevarlo</a>
+  <a class="menu-i t-reportes" href="residuos.html">Residuos señalados</a>
+  <a class="menu-i t-voluntarios" href="quien-coordina.html">Quién coordina</a>
+</nav>
 
 <div class="wrap">
 
@@ -66,22 +73,6 @@
     </button>
   </div>
 
-  <div class="enlaces">
-    <p class="enlaces-t">O mire lo que ya hay</p>
-    <a class="enlace-tipo t-puntos" href="donde-llevarlo.html">
-      <span class="enlace-tipo-t">Dónde llevar el material</span>
-      <span class="enlace-tipo-d">Asociaciones de recicladores, puntos limpios, bodegas y gestores de RAEE, con horario y qué reciben.</span>
-    </a>
-    <a class="enlace-tipo t-reportes" href="residuos.html">
-      <span class="enlace-tipo-t">Residuos ya señalados</span>
-      <span class="enlace-tipo-d">Puntos de acumulación que alguien reportó y el equipo revisó, con su ubicación en el mapa.</span>
-    </a>
-    <a class="enlace-tipo t-voluntarios" href="quien-coordina.html">
-      <span class="enlace-tipo-t">Quién coordina en cada zona</span>
-      <span class="enlace-tipo-d">Personas y organizaciones que se ofrecieron a coordinar en su municipio.</span>
-    </a>
-  </div>
-
   <div class="note note-warn" style="margin-top:1.6rem">
     <h3>Seguridad primero</h3>
     <ul>
@@ -111,8 +102,8 @@
     <div class="field gps">
       <label>Ubicación exacta <span class="req">*</span></label>
       <p class="hint">Párese lo más cerca posible del punto y pulse el botón.</p>
-      <button type="button" class="gps-btn" onclick="locate()">Usar mi ubicación actual</button>
-      <div class="gps-out" id="gpsout">Sin ubicación todavía</div>
+      <button type="button" class="gps-btn" onclick="locate('r')">Usar mi ubicación actual</button>
+      <div class="gps-out" id="gpsout-r">Sin ubicación todavía</div>
     </div>
 
     <div class="field">
@@ -302,6 +293,15 @@
       <label for="d-mun">Municipio <span class="req">*</span></label>
       <input type="text" id="d-mun" required>
     </div>
+    <div class="field gps">
+      <label>Ubicación del punto</label>
+      <p class="hint">Si está allí ahora, púlselo. Es lo que convierte la ficha
+      en un enlace que abre el mapa, y en un sitio sin nomenclatura una
+      dirección escrita no basta para llegar.</p>
+      <button type="button" class="gps-btn" onclick="locate('d')">Usar mi ubicación actual</button>
+      <div class="gps-out" id="gpsout-d">Sin ubicación todavía</div>
+    </div>
+
     <div class="field">
       <label for="d-dir">Dirección</label>
       <input type="text" id="d-dir">
@@ -376,7 +376,7 @@
 
 </div>
 
-<script src="config.js?v=6"></script>
+<script src="config.js?v=7"></script>
 <script>
 var LISTAS = {
   dep:["Chocó","Risaralda","Valle del Cauca","Caldas","Quindío","Antioquia","Cauca","Tolima",
@@ -426,20 +426,27 @@ function hazard(){
 }
 
 /* ---------- ubicación ---------- */
-var coords = null;
-function locate(){
-  var out = document.getElementById('gpsout');
+/* Dos formularios piden ubicación —el reporte y el punto de acopio— y cada
+   uno guarda la suya. Antes esto era una variable suelta y un identificador
+   fijo, así que sólo podía servir a uno. */
+var coords = { r:null, d:null };
+
+function locate(cual){
+  var out = document.getElementById('gpsout-' + cual);
   if (!navigator.geolocation){
-    out.textContent = 'Este teléfono no permite ubicación automática. Describa el punto de referencia con el mayor detalle posible.';
+    out.textContent = 'Este teléfono no permite ubicación automática. Describa la dirección con el mayor detalle posible.';
     return;
   }
   out.textContent = 'Buscando señal…';
   navigator.geolocation.getCurrentPosition(function(p){
-    coords = { lat:p.coords.latitude, lon:p.coords.longitude, acc:Math.round(p.coords.accuracy) };
-    out.textContent = coords.lat.toFixed(6) + ', ' + coords.lon.toFixed(6) + '  ·  ±' + coords.acc + ' m';
+    var c = { lat:p.coords.latitude, lon:p.coords.longitude, acc:Math.round(p.coords.accuracy) };
+    coords[cual] = c;
+    out.textContent = c.lat.toFixed(6) + ', ' + c.lon.toFixed(6) + '  ·  ±' + c.acc + ' m';
     out.classList.add('set');
+    // Con mucho margen conviene decirlo: ±200 m manda un camión a otra manzana.
+    if (c.acc > 100) out.textContent += '  (poco precisa)';
   }, function(){
-    out.textContent = 'No se pudo obtener la ubicación. Revise los permisos, o describa el punto de referencia con el mayor detalle posible.';
+    out.textContent = 'No se pudo obtener la ubicación. Revise los permisos, o describa la dirección con el mayor detalle posible.';
     out.classList.remove('set');
   }, { enableHighAccuracy:true, timeout:12000 });
 }
@@ -510,9 +517,9 @@ function recoger(cual){
       departamento: val('r-dep'),
       municipio: val('r-mun'),
       referencia: val('r-ref'),
-      lat: coords ? coords.lat : null,
-      lon: coords ? coords.lon : null,
-      precision_m: coords ? coords.acc : null,
+      lat: coords.r ? coords.r.lat : null,
+      lon: coords.r ? coords.r.lon : null,
+      precision_m: coords.r ? coords.r.acc : null,
       tipo_residuo: val('r-tipo'),
       volumen: val('r-vol'),
       riesgo_sanitario: val('r-riesgo'),
@@ -548,6 +555,9 @@ function recoger(cual){
     departamento: val('d-dep'),
     municipio: val('d-mun'),
     direccion: val('d-dir'),
+    lat: coords.d ? coords.d.lat : null,
+    lon: coords.d ? coords.d.lon : null,
+    precision_m: coords.d ? coords.d.acc : null,
     materiales_si: val('d-si'),
     materiales_no: val('d-no'),
     horario: val('d-hor'),

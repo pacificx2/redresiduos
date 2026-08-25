@@ -164,13 +164,8 @@ const navegador = await chromium.launch();
       return !!cards && !!aviso &&
         (cards.compareDocumentPosition(aviso) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
     }));
-  comprobar('la portada enlaza las tres pantallas del directorio',
-    await p.locator('#home .enlaces a[href="donde-llevarlo.html"]').count() === 1 &&
-    await p.locator('#home .enlaces a[href="residuos.html"]').count() === 1 &&
-    await p.locator('#home .enlaces a[href="quien-coordina.html"]').count() === 1);
-  comprobar('y cada enlace lleva un color distinto',
-    await p.evaluate(() => new Set([...document.querySelectorAll('#home .enlace-tipo')]
-      .map(a => getComputedStyle(a).backgroundColor)).size === 3));
+  comprobar('la navegación ya no está suelta al final de la portada',
+    await p.locator('#home .enlaces').count() === 0);
   comprobar('las tres tarjetas tienen fondos distintos',
     await p.evaluate(() => new Set([...document.querySelectorAll('.card')]
       .map(c => getComputedStyle(c).backgroundColor)).size === 3));
@@ -180,6 +175,66 @@ const navegador = await chromium.launch();
   comprobar('no desborda a lo ancho',
     !(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
   comprobar('sin errores de JS', errs.length === 0);
+  await ctx.close();
+}
+
+/* ---------------------------------------------------------------------
+   1 bis · El GPS, en los dos formularios que lo piden
+   Con la ubicación del navegador simulada: no se toca el GPS de nadie.
+   --------------------------------------------------------------------- */
+{
+  bloque('ubicación de un toque');
+  const ctx = await navegador.newContext({
+    ...devices['Pixel 7'],
+    permissions: ['geolocation'],
+    geolocation: { latitude: 5.694400, longitude: -76.658100, accuracy: 12 }
+  });
+  const p = await ctx.newPage();
+  await p.goto(RAIZ + '/index.html', { waitUntil:'domcontentloaded' });
+  await p.waitForSelector('#home.on');
+
+  // --- Reportar residuos ---
+  await p.click('.card >> nth=0'); await p.waitForSelector('#f1.on');
+  await p.click('#f1 .gps-btn');
+  await p.waitForFunction(() => document.getElementById('gpsout-r').classList.contains('set'), { timeout:5000 });
+  comprobar('el reporte capta la ubicación',
+    await p.evaluate(() => Math.abs(recoger('f1').datos.lat - 5.6944) < 0.001));
+
+  // --- Aportar un punto: es lo que faltaba ---
+  await p.click('#f1 .back'); await p.waitForSelector('#home.on');
+  await p.click('.card >> nth=2'); await p.waitForSelector('#f3.on');
+  comprobar('el formulario de puntos ya pide ubicación',
+    await p.locator('#f3 .gps-btn').count() === 1);
+  await p.click('#f3 .gps-btn');
+  await p.waitForFunction(() => document.getElementById('gpsout-d').classList.contains('set'), { timeout:5000 });
+  const d = await p.evaluate(() => recoger('f3').datos);
+  comprobar('y la manda al guardar',
+    Math.abs(d.lat - 5.6944) < 0.001 && Math.abs(d.lon + 76.6581) < 0.001);
+  comprobar('junto con la precisión, para saber cuánto fiarse', d.precision_m === 12);
+
+  /* Cada formulario guarda la suya: antes esto era una variable suelta y
+     un identificador fijo, y sólo podía servir a uno de los dos. */
+  comprobar('las dos ubicaciones no se pisan',
+    await p.evaluate(() => coords.r !== null && coords.d !== null && coords.r !== coords.d));
+  await ctx.close();
+}
+
+/* ---------------------------------------------------------------------
+   1 ter · Sin permiso de ubicación no se pierde el envío
+   --------------------------------------------------------------------- */
+{
+  bloque('ubicación denegada');
+  const ctx = await navegador.newContext({ ...devices['Pixel 7'], permissions: [] });
+  const p = await ctx.newPage();
+  await p.goto(RAIZ + '/index.html', { waitUntil:'domcontentloaded' });
+  await p.waitForSelector('#home.on');
+  await p.click('.card >> nth=2'); await p.waitForSelector('#f3.on');
+  await p.click('#f3 .gps-btn');
+  await p.waitForTimeout(1500);
+  comprobar('lo explica en vez de quedarse callado',
+    /No se pudo obtener|permite ubicación|Buscando/.test(await p.textContent('#gpsout-d')));
+  comprobar('y el formulario se puede enviar igual, sin coordenadas',
+    await p.evaluate(() => recoger('f3').datos.lat === null));
   await ctx.close();
 }
 
@@ -483,13 +538,8 @@ const navegador = await chromium.launch();
     !(await p.evaluate(() => window.__xss === 1)) && await p.locator('#lista script').count() === 0);
   comprobar('el teléfono queda como enlace de WhatsApp',
     await p.getAttribute('#lista a[href*="wa.me"]', 'href') === 'https://wa.me/573001112233');
-  comprobar('enlaza a las otras dos pantallas',
-    await p.locator('#otros a[href="residuos.html"]').count() === 1 &&
-    await p.locator('#otros a[href="quien-coordina.html"]').count() === 1);
-  comprobar('y no se enlaza a sí misma', await p.locator('#otros a[href="donde-llevarlo.html"]').count() === 0);
-  comprobar('cada enlace lleva el color de su tipo',
-    await p.evaluate(() => new Set([...document.querySelectorAll('#otros .enlace-tipo')]
-      .map(a => getComputedStyle(a).backgroundColor)).size === 2));
+  comprobar('la navegación no se repite al final de la página',
+    await p.locator('#otros').count() === 0);
   await p.selectOption('#f-dep', 'Chocó'); await p.waitForTimeout(400);
   comprobar('el departamento llega a la consulta',
     (await p.evaluate(() => window.__urls)).pop().includes('departamento=eq.Choc'));
@@ -596,6 +646,68 @@ const navegador = await chromium.launch();
     return document.getElementById('incompleto').textContent.includes('no recibe desde internet');
   });
   comprobar('el detector de dominios locales sigue vivo', salta);
+  await ctx.close();
+}
+
+/* ---------------------------------------------------------------------
+   5 bis · El menú de secciones
+   Va escrito en cada página en lugar de pintarlo JavaScript: la navegación
+   es lo último que debe depender de que un script cargue. El precio es
+   tener cuatro copias, y lo que impide que se desincronicen es esto.
+   --------------------------------------------------------------------- */
+{
+  bloque('menú de secciones');
+
+  const ESPERADO = ['index.html','donde-llevarlo.html','residuos.html','quien-coordina.html'];
+  const PAGINAS = {
+    'index.html':'index.html',
+    'donde-llevarlo.html':'donde-llevarlo.html',
+    'residuos.html':'residuos.html',
+    'quien-coordina.html':'quien-coordina.html',
+    'datos.html':null,
+    'moderar.html':null
+  };
+
+  const ctx = await navegador.newContext({ ...devices['Pixel 7'] });
+  const p = await ctx.newPage();
+  const desajustes = [], marcasMal = [];
+
+  for (const [pagina, actual] of Object.entries(PAGINAS)) {
+    await p.goto(RAIZ + '/' + pagina, { waitUntil:'domcontentloaded' });
+    const m = await p.evaluate(() => {
+      const nav = document.querySelector('nav.menu');
+      if (!nav) return null;
+      const a = [...nav.querySelectorAll('a')];
+      return { hrefs: a.map(x => x.getAttribute('href')),
+               actuales: a.filter(x => x.getAttribute('aria-current') === 'page')
+                          .map(x => x.getAttribute('href')) };
+    });
+    if (!m || ESPERADO.join() !== m.hrefs.join()) desajustes.push(pagina);
+    else if (actual ? (m.actuales.length !== 1 || m.actuales[0] !== actual)
+                    : m.actuales.length !== 0) marcasMal.push(pagina);
+  }
+
+  comprobar('las seis páginas llevan el mismo menú, en el mismo orden',
+    desajustes.length === 0);
+  if (desajustes.length) console.log('     desajustadas: ' + desajustes.join(', '));
+  comprobar('cada una se marca a sí misma, y sólo a sí misma',
+    marcasMal.length === 0);
+  if (marcasMal.length) console.log('     mal marcadas: ' + marcasMal.join(', '));
+
+  // Los colores de tipo tienen que llegar hasta el menú.
+  await p.goto(RAIZ + '/donde-llevarlo.html', { waitUntil:'domcontentloaded' });
+  comprobar('el enlace de la página actual va resaltado en su color',
+    await p.evaluate(() => {
+      const a = document.querySelector('.menu-i[aria-current="page"]');
+      const otro = document.querySelector('.menu-i:not([aria-current])');
+      const f = e => getComputedStyle(e).backgroundColor;
+      return f(a) !== f(otro);
+    }));
+  comprobar('el menú no desborda la página aunque no quepa',
+    !(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
+  comprobar('y se puede llegar a los cuatro con el teclado',
+    await p.evaluate(() => [...document.querySelectorAll('.menu-i')]
+      .every(a => a.tabIndex >= 0)));
   await ctx.close();
 }
 

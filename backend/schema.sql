@@ -191,6 +191,9 @@ create table public.puntos_acopio (
   direccion           text check (length(direccion) <= 300),
   lat                 double precision check (lat between -90 and 90),
   lon                 double precision check (lon between -180 and 180),
+  -- Cuánto se fía uno de esas coordenadas: ±200 m manda un camión a la
+  -- manzana equivocada, y la moderación tiene que poder verlo.
+  precision_m         integer check (precision_m between 0 and 100000),
   materiales_si       text not null check (length(materiales_si) <= 600),
   materiales_no       text check (length(materiales_no) <= 600),
   horario             text check (length(horario) <= 300),
@@ -265,7 +268,8 @@ create view public.v_puntos_publicos as
          materiales_si, materiales_no, horario, recoge_domicilio,
          persona_contacto, telefono, como_llega_material,
          verificacion, fecha_verificacion,
-         telefono_reciclador
+         telefono_reciclador,
+         precision_m
   from public.puntos_acopio
   where publicado and not eliminado;
 
@@ -496,6 +500,7 @@ begin
 
   insert into public.puntos_acopio (
     nombre, tipo, departamento, municipio, direccion,
+    lat, lon, precision_m,
     materiales_si, materiales_no, horario, recoge_domicilio,
     persona_contacto, telefono, telefono_reciclador, telefono_registra,
     como_llega_material, confirmado_por_llamada,
@@ -506,6 +511,9 @@ begin
     (p->>'departamento')::departamento,
     p->>'municipio',
     nullif(p->>'direccion',''),
+    (p->>'lat')::double precision,
+    (p->>'lon')::double precision,
+    (p->>'precision_m')::integer,
     p->>'materiales_si',
     nullif(p->>'materiales_no',''),
     nullif(p->>'horario',''),
@@ -563,7 +571,8 @@ grant update (organizacion, departamento, municipio, zona, rol,
 
 grant update (nombre, tipo, departamento, municipio, direccion, lat, lon,
               materiales_si, materiales_no, horario, recoge_domicilio,
-              persona_contacto, telefono, telefono_reciclador, telefono_registra,
+              precision_m, persona_contacto, telefono,
+              telefono_reciclador, telefono_registra,
               como_llega_material, confirmado_por_llamada, verificacion, notas,
               publicado, eliminado)
   on public.puntos_acopio to authenticated;

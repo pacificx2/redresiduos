@@ -262,3 +262,26 @@ select 'T34 de un punto se publica el reciclador, no quien lo aportó' as prueba
           where table_name='v_puntos_publicos' and column_name='telefono_reciclador') as reciclador_si,
   not exists (select 1 from information_schema.columns
           where table_name='v_puntos_publicos' and column_name='telefono_registra') as registra_no;
+
+-- Un punto de acopio ya puede guardar dónde está. Antes las columnas
+-- existían y la vista pública las exponía, pero la función de inserción no
+-- las aceptaba: el enlace "Cómo llegar" del directorio no podía aparecer
+-- nunca porque siempre estaban vacías.
+set request.headers = '{"x-forwarded-for":"202.7.7.7"}';
+set role anon;
+select public.proponer_punto('{"nombre":"[T35] Bodega de prueba","tipo":"Bodega de reciclaje","departamento":"Chocó","municipio":"Quibdó","materiales_si":"Cartón","lat":5.6944,"lon":-76.6581,"precision_m":12,"telefono_reciclador":"3001112233","telefono_registra":"3009998877"}'::jsonb) as _ \gset
+reset role;
+select 'T35 un punto guarda su ubicación y su precisión' as prueba,
+  round(lat::numeric,4) as lat, round(lon::numeric,4) as lon, precision_m
+  from public.puntos_acopio where nombre = '[T35] Bodega de prueba';
+
+set role authenticated;
+set request.jwt.claims = '{"email":"mod@ejemplo.org"}';
+update public.puntos_acopio set publicado = true where nombre = '[T35] Bodega de prueba';
+reset role;
+set role anon;
+select 'T36 y el público ve la ubicación y el reciclador, no a quien lo aportó' as prueba,
+  lat is not null as hay_ubicacion,
+  telefono_reciclador is not null as hay_reciclador
+  from public.v_puntos_publicos where nombre = '[T35] Bodega de prueba';
+reset role;

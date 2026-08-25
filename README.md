@@ -98,6 +98,11 @@ Las listas desplegables son exactamente las de la hoja `Listas`.
   otra cosa. Todo el texto llega al mínimo de contraste de la norma (4,5:1, y
   3:1 en titulares grandes), y se comprueba solo en `pruebas/navegador.mjs`
   midiendo sobre la página ya pintada y no sobre la hoja de estilos.
+- **Un menú fijo arriba, no enlaces sueltos al final.** Cuatro secciones, cada
+  una con el color de su tipo y la actual resaltada. Va escrito en el HTML de
+  cada página y no lo pinta JavaScript: la navegación es lo último que debe
+  depender de que un script cargue. El precio son cuatro copias, y lo que
+  impide que se desincronicen es una prueba que las compara.
 - **Una página por tipo, no pestañas.** Cada una tiene su dirección, su color
   y su contador, así que se pueden compartir por separado y volver atrás. Con
   pestañas, además, los contadores de las que no se habían visitado se
@@ -135,9 +140,6 @@ node pruebas/navegador.mjs
 2. **Ver a alguien del equipo usar la moderación.** Sólo la ha usado quien la
    escribió; eso no es lo mismo que saber que se entiende.
 3. Que la página abra sin señal (aún hace falta conexión para cargarla).
-4. Un punto de acopio sigue sin forma de guardar su ubicación: el formulario
-   no pide GPS y la función de inserción no acepta `lat`/`lon`. El directorio
-   intenta pintar un enlace al mapa que nunca puede aparecer.
 
 Y hay que atender de verdad `contacto@reciclamores.org`, porque el aviso de
 datos promete por escrito que ahí se responde en diez días hábiles.
