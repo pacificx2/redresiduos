@@ -511,3 +511,13 @@ details.ficha > summary:focus-visible{outline:3px solid var(--focus); outline-of
 
 /* La cabecera y el menú se pegan arriba uno debajo del otro. */
 .top{box-shadow:none}
+
+/* ---------- logo de Reciclamores en la cabecera ----------
+   Va donde antes estaba la etiqueta "Prototipo". Si el archivo faltara, el
+   `onerror` del propio <img> lo quita en vez de dejar el icono de imagen
+   rota: la cabecera se queda sólo con el nombre, que sigue leyéndose. */
+.logo{
+  margin-left:auto; display:block;
+  height:26px; width:auto; max-width:48vw;
+}
+@media (min-width:26rem){ .logo{height:32px} }

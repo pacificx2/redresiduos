@@ -18,22 +18,23 @@
 <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
-<link rel="stylesheet" href="estilos.css?v=7">
+<link rel="stylesheet" href="estilos.css?v=8">
 </head>
 <body>
 
 <header class="top">
   <div class="top-in">
     <div class="mark">Red de Residuos<span>Reciclamores</span></div>
-    <div class="proto">Prototipo</div>
+    <img class="logo" src="logo.png" width="600" height="156" alt="Reciclamores ONG"
+         onerror="this.remove()">
   </div>
 </header>
 
 <nav class="menu" aria-label="Secciones del sitio">
   <a class="menu-i" href="index.html" aria-current="page">Inicio</a>
   <a class="menu-i t-puntos" href="donde-llevarlo.html">Dónde llevarlo</a>
-  <a class="menu-i t-reportes" href="residuos.html">Residuos señalados</a>
-  <a class="menu-i t-voluntarios" href="quien-coordina.html">Quién coordina</a>
+  <a class="menu-i t-reportes" href="residuos.html">Puntos críticos</a>
+  <a class="menu-i t-voluntarios" href="quien-coordina.html">Voluntarios inscritos</a>
 </nav>
 
 <div class="wrap">
@@ -42,11 +43,10 @@
 <section id="home" class="view on">
   <div class="intro">
     <p class="eyebrow">Emergencia · Terremoto del 10 de agosto de 2026</p>
-    <h1>La ayuda llegó. Los empaques también.</h1>
-    <p class="lede">Un mapa vivo, hecho por la comunidad, para conectar tres cosas que hoy están
-      desconectadas: dónde se acumulan los residuos, quién puede coordinar en el territorio,
-      y a dónde hay que llevarlos.</p>
-    <p class="fine">Este sitio no reemplaza a las autoridades ni a la UNGRD.</p>
+    <h1>La ayuda llegó. Los residuos también.</h1>
+    <p class="lede">Desde Reciclamores ONG, creamos este documento colaborativo, hecho por la
+      comunidad, para conectar tres cosas que hoy están desconectadas: dónde se acumulan los
+      residuos, quién puede coordinar en el territorio, y a dónde hay que llevarlos.</p>
   </div>
 
   <div class="cards">
@@ -94,9 +94,16 @@
 <section id="f1" class="view">
   <button class="back" onclick="go('home')">← Volver</button>
   <p class="eyebrow">Hoja 1</p>
-  <p class="cinta t-reportes">Residuos señalados</p>
+  <p class="cinta t-reportes">Puntos críticos</p>
   <h1>¿Dónde se están acumulando?</h1>
-  <p class="lede">Repórtelo solo si lo vio con sus propios ojos.</p>
+  <p class="lede">En esta sección puedes reportar los lugares donde se ha identificado
+  acumulación de residuos. Muchas veces son los mismos puntos donde llegan las ayudas o
+  los camiones —ya sea con donaciones, insumos u otro tipo de apoyo— y donde también se
+  van acumulando cajas, cintas y otros materiales. También puede tratarse de barrios y
+  sectores que hoy enfrentan dificultades con el manejo de sus residuos. Toda esta
+  información nos ayuda a construir un mapa real del territorio y a conectar esos puntos
+  con quienes pueden atenderlos.</p>
+  <p class="fine">Repórtelo solo si lo vio con sus propios ojos.</p>
 
   <form onsubmit="return done(event,'f1')">
     <div class="field gps">
@@ -185,9 +192,13 @@
 <section id="f2" class="view">
   <button class="back" onclick="go('home')">← Volver</button>
   <p class="eyebrow">Hoja 2</p>
-  <p class="cinta t-voluntarios">Quién coordina</p>
+  <p class="cinta t-voluntarios">Voluntarios inscritos</p>
   <h1>¿Quién coordina en su territorio?</h1>
-  <p class="lede">Personas y colectivos dispuestos a organizar la recogida en su zona.</p>
+  <p class="lede">Este voluntariado está dirigido a quienes quieren aportar tiempo y
+  disposición en el territorio, ya sea apoyando la recolección de residuos o ayudando a
+  coordinar: identificando puntos críticos de acumulación y conectándolos con los
+  recicladores de oficio que pueden gestionarlos. No se requiere experiencia previa, solo
+  el interés de sumar desde donde cada persona pueda hacerlo.</p>
 
   <form onsubmit="return done(event,'f2')">
     <div class="field">
@@ -231,9 +242,8 @@
       <input type="email" id="v-mail">
     </div>
     <div class="field">
-      <label for="v-red">Red social o enlace que permita verificarle</label>
-      <p class="hint">Sirve para confirmar que la persona existe antes de conectarla con una comunidad.</p>
-      <input type="text" id="v-red">
+      <label for="v-red">Instagram</label>
+      <input type="text" id="v-red" placeholder="@usuario" autocapitalize="none" autocorrect="off">
     </div>
 
     <div class="note note-warn">
@@ -269,7 +279,10 @@
   <p class="eyebrow">Hoja 3</p>
   <p class="cinta t-puntos">Dónde llevarlo</p>
   <h1>¿A dónde llevar el material?</h1>
-  <p class="lede">Asociaciones de recicladores, puntos limpios y gestores.</p>
+  <p class="lede">En esta sección puedes reportar asociaciones de recicladores presentes en
+  algunos de los territorios afectados. Esta información nos permite identificar con quién
+  se puede coordinar directamente en cada zona, y facilitar así la conexión entre los
+  puntos críticos y quienes pueden gestionarlos.</p>
 
   <div class="note note-plain" style="margin-top:1rem">
     <p style="margin:0">Antes de enviar este dato, <strong>llame y confirme</strong>. Un teléfono que
@@ -370,13 +383,12 @@
 
 <footer class="pie">
   <a href="datos.html">Tratamiento de datos personales</a>
-  <p class="fine">Herramienta comunitaria de Reciclamores. No reemplaza a las
-  autoridades ni a la UNGRD.</p>
+  <p class="fine">Herramienta comunitaria de Reciclamores ONG.</p>
 </footer>
 
 </div>
 
-<script src="config.js?v=7"></script>
+<script src="config.js?v=8"></script>
 <script>
 var LISTAS = {
   dep:["Chocó","Risaralda","Valle del Cauca","Caldas","Quindío","Antioquia","Cauca","Tolima",
@@ -509,6 +521,20 @@ function llamar(funcion, datos){
 }
 
 function val(id){ var e = document.getElementById(id); return e ? e.value : ''; }
+
+/* La gente pega el perfil de mil maneras: con arroba, sin ella, o la
+   dirección entera copiada del navegador. Se guarda siempre igual, con
+   arroba, para que la moderación no tenga que interpretarlo. */
+function instagram(t){
+  t = (t || '').trim();
+  if (!t) return '';
+  // El protocolo es opcional: mucha gente escribe "instagram.com/loquesea".
+  t = t.replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '')
+       .replace(/[?#].*$/, '')
+       .replace(/\/+$/, '')
+       .replace(/^@+/, '');
+  return t ? '@' + t : '';
+}
 function chk(id){ return document.getElementById(id).checked; }
 
 function recoger(cual){
@@ -544,7 +570,7 @@ function recoger(cual){
       tiene_vehiculo: val('v-veh'),
       whatsapp: val('v-wa'),
       correo: val('v-mail'),
-      enlace_verificacion: val('v-red'),
+      enlace_verificacion: instagram(val('v-red')),
       acepto_seguridad: chk('v-seg'),
       publicar_contacto: chk('v-cons')
     }};

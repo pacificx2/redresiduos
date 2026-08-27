@@ -141,12 +141,35 @@ const navegador = await chromium.launch();
   // `.back` existe en los tres formularios; hay que decir cuál.
   await p.click('#f1 .back'); await p.waitForSelector('#home.on');
   await p.click('.card >> nth=2'); await p.waitForSelector('#f3.on');
+  comprobar('la cabecera lleva el logo de Reciclamores, y carga de verdad',
+    await p.evaluate(() => {
+      const i = document.querySelector('.logo');
+      return !!i && i.complete && i.naturalWidth > 0;
+    }));
+  comprobar('ya no queda la etiqueta "Prototipo"',
+    !(await p.textContent('body')).includes('Prototipo'));
+  comprobar('la portada habla de residuos, no de empaques',
+    norm(await p.textContent('#home h1')).includes('Los residuos también'));
+  comprobar('y presenta a Reciclamores ONG',
+    norm(await p.textContent('#home')).includes('Desde Reciclamores ONG'));
+  comprobar('ya no dice que no reemplaza a las autoridades',
+    !norm(await p.textContent('#home')).includes('reemplaza a las autoridades'));
+
   comprobar('el tercer formulario habla de aportar información',
     norm(await p.textContent('#f3 h1, #home')).includes('Aportar información sobre un punto'));
   comprobar('pide el teléfono del reciclador', await p.locator('#d-recic').count() === 1);
   comprobar('y el de quien rellena, marcado como no público',
     await p.locator('#d-suyo').count() === 1 &&
     norm(await p.textContent('#f3')).includes('El de usted'));
+  comprobar('el campo de verificación pide un Instagram',
+    norm(await p.textContent('#f2 label[for="v-red"]')) === 'Instagram');
+  /* La gente pega el perfil de mil maneras. Se guarda siempre igual para que
+     la moderación no tenga que interpretarlo. */
+  comprobar('el usuario de Instagram se guarda normalizado',
+    await p.evaluate(() => instagram('https://www.instagram.com/rosalba/') === '@rosalba' &&
+                           instagram('instagram.com/rosalba?hl=es') === '@rosalba' &&
+                           instagram('rosalba') === '@rosalba' &&
+                           instagram('  ') === ''));
   comprobar('el envío manda los dos teléfonos nuevos',
     await p.evaluate(() => {
       const d = recoger('f3').datos;
@@ -534,6 +557,9 @@ const navegador = await chromium.launch();
     (await p.evaluate(() => window.__urls)).filter(u => u.includes('/rest/v1/v_'))
       .every(u => u.includes('v_puntos_publicos')));
   comprobar('el contador dice cuántos hay', (await p.textContent('#cuenta')) === '1 resultado');
+  comprobar('la pantalla explica de qué va', (await p.textContent('.lede')).includes('reportada por la comunidad'));
+  comprobar('ya no está el aviso "Antes de nada"',
+    !(await p.textContent('body')).includes('Antes de nada'));
   comprobar('NO ejecuta el HTML que venga en un nombre',
     !(await p.evaluate(() => window.__xss === 1)) && await p.locator('#lista script').count() === 0);
   comprobar('el teléfono queda como enlace de WhatsApp',
@@ -659,6 +685,7 @@ const navegador = await chromium.launch();
   bloque('menú de secciones');
 
   const ESPERADO = ['index.html','donde-llevarlo.html','residuos.html','quien-coordina.html'];
+  const ETIQUETAS = ['Inicio','Dónde llevarlo','Puntos críticos','Voluntarios inscritos'];
   const PAGINAS = {
     'index.html':'index.html',
     'donde-llevarlo.html':'donde-llevarlo.html',
@@ -679,10 +706,11 @@ const navegador = await chromium.launch();
       if (!nav) return null;
       const a = [...nav.querySelectorAll('a')];
       return { hrefs: a.map(x => x.getAttribute('href')),
+               textos: a.map(x => x.textContent.trim()),
                actuales: a.filter(x => x.getAttribute('aria-current') === 'page')
                           .map(x => x.getAttribute('href')) };
     });
-    if (!m || ESPERADO.join() !== m.hrefs.join()) desajustes.push(pagina);
+    if (!m || ESPERADO.join() !== m.hrefs.join() || ETIQUETAS.join() !== m.textos.join()) desajustes.push(pagina);
     else if (actual ? (m.actuales.length !== 1 || m.actuales[0] !== actual)
                     : m.actuales.length !== 0) marcasMal.push(pagina);
   }

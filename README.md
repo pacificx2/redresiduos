@@ -28,14 +28,15 @@ el aviso de datos está completo y la moderación funciona.
 |---|---|---|
 | `index.html` | Cualquiera | Los tres formularios |
 | `donde-llevarlo.html` | Cualquiera | Puntos donde reciben material, ya revisados |
-| `residuos.html` | Cualquiera | Puntos de acumulación reportados y revisados |
-| `quien-coordina.html` | Cualquiera | Voluntarios que autorizaron publicar su contacto |
+| `residuos.html` | Cualquiera | Puntos críticos: acumulaciones reportadas y revisadas |
+| `quien-coordina.html` | Cualquiera | Voluntarios inscritos que autorizaron publicar su contacto |
 | `directorio.js` | — | La lógica de las tres, que sólo cambian en el tipo |
 | `directorio.html` | — | Desvío: antes eran pestañas, ahora son tres páginas |
 | `datos.html` | Cualquiera | Aviso de tratamiento de datos (Ley 1581 de 2012) |
 | `moderar.html` | El equipo | Bandeja de revisión. Muestra datos personales |
 | `estilos.css` | — | Estilos de las cuatro páginas |
 | `config.js` | — | La URL y la clave pública de Supabase |
+| `logo.png` | — | Logo de Reciclamores ONG, en la cabecera de todas |
 
 `moderar.html` lleva `noindex` y no se enlaza desde la portada, pero **no es
 secreta**: quien la abra sin ser moderador recibe listas vacías de la propia

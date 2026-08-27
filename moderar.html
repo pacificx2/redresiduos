@@ -18,7 +18,7 @@
 <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"></noscript>
-<link rel="stylesheet" href="estilos.css?v=7">
+<link rel="stylesheet" href="estilos.css?v=8">
 </head>
 <body>
 
@@ -32,8 +32,8 @@
 <nav class="menu" aria-label="Secciones del sitio">
   <a class="menu-i" href="index.html">Inicio</a>
   <a class="menu-i t-puntos" href="donde-llevarlo.html">Dónde llevarlo</a>
-  <a class="menu-i t-reportes" href="residuos.html">Residuos señalados</a>
-  <a class="menu-i t-voluntarios" href="quien-coordina.html">Quién coordina</a>
+  <a class="menu-i t-reportes" href="residuos.html">Puntos críticos</a>
+  <a class="menu-i t-voluntarios" href="quien-coordina.html">Voluntarios inscritos</a>
 </nav>
 
 <div class="wrap">
@@ -114,13 +114,13 @@
   <footer class="pie">
     <a href="index.html">Ir a los formularios</a>
     <a href="donde-llevarlo.html">Dónde llevar el material</a>
-    <a href="residuos.html">Residuos señalados</a>
+    <a href="residuos.html">Puntos críticos</a>
   </footer>
 </section>
 
 </div>
 
-<script src="config.js?v=7"></script>
+<script src="config.js?v=8"></script>
 <script>
 /* =====================================================================
    MODERACIÓN
@@ -410,7 +410,7 @@ function arrancar(){
    ===================================================================== */
 var TIPOS = {
   reportes: {
-    clase:'t-reportes', titulo:'Residuos señalados', tabla:'reportes',
+    clase:'t-reportes', titulo:'Puntos críticos', tabla:'reportes',
     ruta:'/rest/v1/reportes?select=*,reportes_contacto(*)',
     hijo:'reportes_contacto', tablaHijo:'reportes_contacto', fk:'reporte_id',
     campos:[
@@ -436,7 +436,7 @@ var TIPOS = {
     ]
   },
   voluntarios: {
-    clase:'t-voluntarios', titulo:'Quién coordina', tabla:'voluntarios',
+    clase:'t-voluntarios', titulo:'Voluntarios inscritos', tabla:'voluntarios',
     ruta:'/rest/v1/voluntarios?select=*,voluntarios_contacto(*)',
     hijo:'voluntarios_contacto', tablaHijo:'voluntarios_contacto', fk:'voluntario_id',
     campos:[
@@ -454,7 +454,7 @@ var TIPOS = {
       {k:'nombre',   et:'Nombre'},
       {k:'whatsapp', et:'WhatsApp'},
       {k:'correo',   et:'Correo'},
-      {k:'enlace_verificacion', et:'Enlace de verificación'},
+      {k:'enlace_verificacion', et:'Instagram'},
       {k:'publicar_contacto',   et:'Autorizó publicar su contacto', bool:true}
     ]
   },
